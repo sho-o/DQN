@@ -8,6 +8,7 @@ import chainer.functions as F
 import chainer.links as L
 import argparse
 import copy
+#import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='Pong-v0', type=str,
@@ -16,8 +17,10 @@ parser.add_argument('--comment', '-c', default='', type=str,
                     help='comment to distinguish output')                    
 parser.add_argument('--gpu', '-g', default=0, type=int,
                     help='GPU ID (negative value indicates CPU)')
-parser.add_argument('--n_episode', '-n', default=10**6, type=int,
+parser.add_argument('--n_episode', '-ne', default=10**4, type=int,
                     help='number of episode to learn')
+parser.add_argument('--n_step', '-n', default=10**6, type=int,
+                    help='number of steps to learn')
 parser.add_argument('--actionskip', '-as', default=4, type=int,
                     help='number of action repeating')
 parser.add_argument('--update', '-u', default=16, type=int,
@@ -30,7 +33,7 @@ parser.add_argument('--eval', '-e', default=10, type=int,
                     help='evaluation freaquency')
 parser.add_argument('--initial', '-i', default=10**4, type=int,
                     help='nimber of initial exploration')
-parser.add_argument('--epsilon_decrease', '-ep', default=1.0/10**6, type=float,
+parser.add_argument('--epsilon_decrease', '-ep', default=0.9/10**6, type=float,
                     help='initial epsilon')
 parser.add_argument('--batchsize', '-b', type=int, default=32,
                     help='learning minibatch size')
@@ -78,11 +81,11 @@ class Q(Chain):
             l2=L.Convolution2D(32, 64, ksize=4, stride=2),
             l3=L.Convolution2D(64, 64, ksize=3, stride=1),
             l4=L.Linear(3136, 512),
-            l5=L.Linear(512, num_of_actions)
+            l5=L.Linear(512, num_of_actions, initialW=np.zeros((num_of_actions, 512),dtype=np.float32))
         )
 
     def __call__(self, x):
-        h_1 = F.relu(self.l1(x))
+        h_1 = F.relu(self.l1(x / 255.0))
         h_2 = F.relu(self.l2(h_1))
         h_3 = F.relu(self.l3(h_2))
         h_4 = F.relu(self.l4(h_3))
@@ -141,8 +144,11 @@ class DQN():
 
         self.model.zerograds()
         loss = self.compute_loss(s_prev_replay, a_replay, r_replay, s_replay, done_replay)
+        #print loss.data
         loss.backward()
-        self.optimizer.update()  
+        self.optimizer.update()
+        #print self.model.l5.W.data
+  
 
     def compute_loss(self, s_prev, a, r, s, done):
         s_prev = Variable(s_prev)
@@ -160,6 +166,7 @@ class DQN():
         max_q_target = np.asarray(np.amax(q_target_data, axis=1), dtype=np.float32)
 
         target = np.asanyarray(copy.deepcopy(q_data), dtype=np.float32)
+        #print r
         for i in range(self.batch_size):
             if done[i][0] is True:
                 tmp = r[i]
@@ -170,6 +177,8 @@ class DQN():
         if self.gpu == 1:
             target = cuda.to_gpu(target)
         td = Variable(target) - q
+        #print r
+        #print td.data
         td_tmp = td.data + 1000.0 * (abs(td.data) <= 1)
         td_clip = td * (abs(td.data) <= 1) + td/abs(td_tmp) * (abs(td.data) > 1)
 
@@ -178,6 +187,7 @@ class DQN():
             zero = cuda.to_gpu(zero)
         zero =  Variable(zero)    
         loss = F.mean_squared_error(td_clip, zero)
+        #print loss.data
         return loss
 
     def epsilon_greedy(self, s, epsilon):
@@ -198,7 +208,8 @@ class DQN():
             a = np.argmax(q)
             #print("GREEDY  : " + str(a))
             action = np.asarray(a, dtype=np.int8)
-            #print(q)
+            #print q
+        #print epsilon     
         return action
 
     def store(self, total_step, s_prev, a, r, s, done):
@@ -228,6 +239,7 @@ memory_size = args.memorysize
 input_slides = args.inputslides
 batch_size = args.batchsize
 render = args.render
+n_step = args.n_step
 epsilon = 1.0
 total_step = 0
 
@@ -293,6 +305,9 @@ for i_episode in range(n_episode):
 
         s_prev = copy.deepcopy(s)
         s = np.asanyarray([s[1], s[2], s[3], obs_processed], dtype=np.uint8)
+        #plt.imshow(s[3])
+        #plt.gray()
+        #plt.show()
 
         r = preprocess.reward_clip(reward)
 
@@ -302,6 +317,7 @@ for i_episode in range(n_episode):
             if total_step % update_freq == 0:
                 dqn.update(total_step)
             if total_step % target_update_freq == 0:
+            	print "target update"
                 dqn.target_update()
             if total_step % save_freq ==0:
                 print "saving the model"
@@ -309,7 +325,7 @@ for i_episode in range(n_episode):
 
             epsilon -= epsilon_decrease
             if epsilon < 0.1:
-                epsilon = 0.1    
+                epsilon = 0.1   
 
         step += 1
         total_step += 1  
@@ -317,8 +333,12 @@ for i_episode in range(n_episode):
         
         if done:
             f = open("log/{}({}).txt".format(name, comment), "a")
-            f.write(str(i_episode+1) + "," + str(total_reward) + ',' + str(step) +"\n")
+            f.write(str(i_episode+1) + "," + str(total_reward) + ',' + str(step) + ',' + str(total_step) + "\n")
             f.close()
             print("Episode {} finished after {} timesteps".format(i_episode+1, step))
             print ("total_reward : {}".format(total_reward))
+            print ("total_step : {}".format(total_step))
             break
+
+    if total_step > n_step:
+        break    
