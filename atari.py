@@ -17,27 +17,29 @@ parser.add_argument('--comment', '-c', default='', type=str,
                     help='comment to distinguish output')                    
 parser.add_argument('--gpu', '-g', default=0, type=int,
                     help='GPU ID (negative value indicates CPU)')
-parser.add_argument('--n_episode', '-ne', default=10**4, type=int,
+parser.add_argument('--randomskip', '-rs', default=0, type=int,
+                    help='randomskip the frames or not')
+parser.add_argument('--n_episode', '-ne', default=10**5, type=int,
                     help='number of episode to learn')
-parser.add_argument('--n_step', '-n', default=10**6, type=int,
+parser.add_argument('--n_step', '-n', default=5*10**7, type=int,
                     help='number of steps to learn')
 parser.add_argument('--actionskip', '-as', default=4, type=int,
                     help='number of action repeating')
-parser.add_argument('--update', '-u', default=16, type=int,
+parser.add_argument('--update', '-u', default=4, type=int,
                     help='update freaquency')
 parser.add_argument('--targetupdate', '-t', default=10**4, type=int,
                     help='target update freaquency')
-parser.add_argument('--save', '-s', default=10**4, type=int,
+parser.add_argument('--save', '-s', default=10**5, type=int,
                     help='save freaquency')
 parser.add_argument('--eval', '-e', default=10, type=int,
                     help='evaluation freaquency')
-parser.add_argument('--initial', '-i', default=10**4, type=int,
-                    help='nimber of initial exploration')
-parser.add_argument('--epsilon_decrease', '-ep', default=0.9/10**6, type=float,
-                    help='initial epsilon')
+parser.add_argument('--initial', '-i', default=5*10**4, type=int,
+                    help='number of initial exploration')
+parser.add_argument('--epsilon_end', '-ep', default=10**6, type=float,
+                    help='the step number of the end of epsilon decrease')
 parser.add_argument('--batchsize', '-b', type=int, default=32,
                     help='learning minibatch size')
-parser.add_argument('--memorysize', '-m', type=int, default=10**5,
+parser.add_argument('--memorysize', '-m', type=int, default=10**6,
                     help='replay memory size')
 parser.add_argument('--inputslides', '-sl', type=int, default=4,
                     help='number of input slides')
@@ -49,8 +51,8 @@ args = parser.parse_args()
 
 class Preprocess():
     def reward_clip(self, r):
-        if r > 0: r = 1
-        if r < 0: r = -1
+        if r > 0: r = 1.0
+        if r < 0: r = -1.0
         return r   
 
     def gray(self, obs):
@@ -65,11 +67,11 @@ class Preprocess():
         obs_down = spm.imresize(obs, (84, 84))
         return obs_down
 
-    def start(self, obs):
+    def one(self, obs):
         processed = self.downscale(self.gray(obs))
         return processed
 
-    def step(self, obs1, obs2):
+    def two(self, obs1, obs2):
         processed = self.downscale(self.gray(self.max(obs1, obs2)))
         return processed
 
@@ -125,6 +127,7 @@ class DQN():
         else:
             index = np.random.randint(0, self.memory_size, self.batch_size)
 
+
         s_prev_replay = np.ndarray(shape=(self.batch_size, 4, 84, 84), dtype=np.float32)
         a_replay = np.ndarray(shape=(self.batch_size, 1), dtype=np.uint8)
         r_replay = np.ndarray(shape=(self.batch_size, 1), dtype=np.float32)
@@ -147,7 +150,7 @@ class DQN():
         #print loss.data
         loss.backward()
         self.optimizer.update()
-        #print self.model.l5.W.data
+        #print "W{}".format(self.model.l5.W.data[1][5])
   
 
     def compute_loss(self, s_prev, a, r, s, done):
@@ -185,9 +188,11 @@ class DQN():
         zero = np.zeros((self.batch_size, self.num_of_actions), dtype=np.float32)
         if self.gpu == 1:
             zero = cuda.to_gpu(zero)
-        zero =  Variable(zero)    
+        zero = Variable(zero)    
         loss = F.mean_squared_error(td_clip, zero)
-        #print loss.data
+        #f = open("loss/{}({}).txt".format(name, comment), "a")
+        #f.write(str(loss.data) + "\n")
+        #f.close()
         return loss
 
     def epsilon_greedy(self, s, epsilon):
@@ -208,7 +213,7 @@ class DQN():
             a = np.argmax(q)
             #print("GREEDY  : " + str(a))
             action = np.asarray(a, dtype=np.int8)
-            #print q
+            #print "Q{}".format(q)
         #print epsilon     
         return action
 
@@ -227,6 +232,7 @@ class DQN():
 gpu = args.gpu
 name = args.name
 comment = args.comment
+randomskip = args.randomskip
 n_episode = args.n_episode
 action_skip = args.actionskip
 update_freq = args.update
@@ -234,14 +240,16 @@ target_update_freq = args.targetupdate
 save_freq = args.save
 evl_freq = args.eval
 initial_exploration = args.initial
-epsilon_decrease = args.epsilon_decrease
 memory_size = args.memorysize
 input_slides = args.inputslides
 batch_size = args.batchsize
 render = args.render
 n_step = args.n_step
+epsilon_decrease = 0.9/(args.epsilon_end-args.initial)
 epsilon = 1.0
 total_step = 0
+update_times = 0
+target_update_times = 0
 
 env = gym.make(name)
 dqn = DQN(gpu, env.action_space.n, memory_size, input_slides, batch_size)
@@ -282,26 +290,37 @@ def evaluation():
 
 
 for i_episode in range(n_episode):
-    if i_episode % evl_freq == 0:
-        print 'Evaluation'
-        evaluation()
-
+    #if i_episode % evl_freq == 0:
+        #print 'Evaluation'
+        #evaluation()
     step = 0
     total_reward = 0
     obs = env.reset()
     
     s = np.zeros((4, 84, 84), dtype=np.uint8)
-    s[3] = preprocess.start(obs)
+    s[3] = preprocess.one(obs)
 
     while (True):
         if render == 1:
             env.render()
-        if step % action_skip == 0:
-            a = dqn.epsilon_greedy(s, epsilon)
 
-        obs_prev = copy.copy(obs)
-        obs, reward, done, info = env.step(a)
-        obs_processed = preprocess.step(obs_prev, obs)
+        #ale
+        if randomskip == 0:
+            reward = 0
+            a = dqn.epsilon_greedy(s, epsilon)
+            action = env._action_set[a]
+            for i in range(action_skip):
+                reward += env.ale.act(action)
+                obs_prev = copy.deepcopy(obs)
+                obs = env._get_obs()
+            done = env.ale.game_over()
+            obs_processed = preprocess.two(obs_prev, obs)
+
+        #gym
+        if randomskip == 1:
+            a = dqn.epsilon_greedy(s, epsilon)
+            obs, reward, done, info = env.step(a)
+            obs_processed = preprocess.one(obs)    
 
         s_prev = copy.deepcopy(s)
         s = np.asanyarray([s[1], s[2], s[3], obs_processed], dtype=np.uint8)
@@ -313,31 +332,40 @@ for i_episode in range(n_episode):
 
         dqn.store(total_step, s_prev, a, r, s, done)
 
+        step += 1
+        total_step += 1  
+        total_reward += reward   
+
+        #Learning
         if total_step > initial_exploration:
             if total_step % update_freq == 0:
                 dqn.update(total_step)
+                update_times += 1
+             
             if total_step % target_update_freq == 0:
-            	print "target update"
+            	print "---------------------------target update--------------------------------"
                 dqn.target_update()
-            if total_step % save_freq ==0:
-                print "saving the model"
-                serializers.save_npz('network/{}({}).model'.format(name, comment), dqn.model)   
+                target_update_times += 1
+
+            if total_step % save_freq == 0:
+                print "-------------------------saving the model-------------------------------"
+                serializers.save_npz('network/{}({}).model'.format(name, comment), dqn.model)
 
             epsilon -= epsilon_decrease
             if epsilon < 0.1:
-                epsilon = 0.1   
-
-        step += 1
-        total_step += 1  
-        total_reward += reward
+                epsilon = 0.1           
         
         if done:
             f = open("log/{}({}).txt".format(name, comment), "a")
             f.write(str(i_episode+1) + "," + str(total_reward) + ',' + str(step) + ',' + str(total_step) + "\n")
             f.close()
-            print("Episode {} finished after {} timesteps".format(i_episode+1, step))
+            print("-------------------Episode {} finished after {} steps-------------------".format(i_episode+1, step))
             print ("total_reward : {}".format(total_reward))
             print ("total_step : {}".format(total_step))
+            print ("epsilon : {}".format(epsilon))
+            print ("update_times : {}".format(update_times))
+            print ("target_update_times: {}".format(target_update_times))
+
             break
 
     if total_step > n_step:
