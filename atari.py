@@ -8,7 +8,7 @@ import chainer.functions as F
 import chainer.links as L
 import argparse
 import copy
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='Pong-v0', type=str,
@@ -169,7 +169,7 @@ class DQN():
         max_q_target = np.asarray(np.amax(q_target_data, axis=1), dtype=np.float32)
 
         target = np.asanyarray(copy.deepcopy(q_data), dtype=np.float32)
-        #print r
+        
         for i in range(self.batch_size):
             if done[i][0] is True:
                 tmp = r[i]
@@ -180,8 +180,6 @@ class DQN():
         if self.gpu == 1:
             target = cuda.to_gpu(target)
         td = Variable(target) - q
-        #print r
-        #print td.data
         td_tmp = td.data + 1000.0 * (abs(td.data) <= 1)
         td_clip = td * (abs(td.data) <= 1) + td/abs(td_tmp) * (abs(td.data) > 1)
 
