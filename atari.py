@@ -29,7 +29,7 @@ parser.add_argument('--update', '-u', default=4, type=int,
                     help='update freaquency')
 parser.add_argument('--targetupdate', '-t', default=10**4, type=int,
                     help='target update freaquency')
-parser.add_argument('--save', '-s', default=10**5, type=int,
+parser.add_argument('--save', '-s', default=25*10**4, type=int,
                     help='save freaquency')
 parser.add_argument('--eval', '-e', default=10, type=int,
                     help='evaluation freaquency')
@@ -203,16 +203,12 @@ class DQN():
         q = q.data[0]
         if self.gpu == 1:
             q = cuda.to_cpu(q)
-
+            
         if np.random.rand() < epsilon:
             action = np.random.randint(0, self.num_of_actions)
-            #print("RANDOM : " + str(action))
         else:
-            a = np.argmax(q)
-            #print("GREEDY  : " + str(a))
-            action = np.asarray(a, dtype=np.int8)
-            #print "Q{}".format(q)
-        #print epsilon     
+            candidate = np.where(q == np.amax(q))
+            action = np.random.choice(candidate[0])   
         return action
 
     def store(self, total_step, s_prev, a, r, s, done):
