@@ -9,6 +9,7 @@ import chainer.links as L
 import argparse
 import copy
 import matplotlib.pyplot as plt
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='Pong-v0', type=str,
@@ -298,7 +299,7 @@ def evaluation():
         if total_step > eval_step:
             average = accum_reward/float(eval_episode+1.0)
             f = open("evaluation/{}_{}.txt".format(name, comment), "a")
-            f.write(str(eval_counter) + "," + str(average) + "\n")
+            f.write(str(eval_counter) + "," + str(average) + "," + str(time.time()-start) + "\n")
             f.close()
             if average > max_average_reward:
                 max_average_reward = copy.deepcopy(average)
@@ -312,6 +313,7 @@ env = gym.make(name)
 env_eval = gym.make(name)
 dqn = DQN(gpu, env.action_space.n, memory_size, input_slides, batch_size)
 preprocess = Preprocess()
+start = time.time()
 
 for i_episode in range(n_episode):
     step = 0
@@ -377,8 +379,9 @@ for i_episode in range(n_episode):
                 evaluation()
 
         if done:
+            total_time = time.time()-start
             f = open("log/{}_{}.txt".format(name, comment), "a")
-            f.write(str(i_episode+1) + "," + str(total_reward) + ',' + str(step) + ',' + str(total_step) + "\n")
+            f.write(str(i_episode+1) + "," + str(total_reward) + ',' + str(step) + ',' + str(total_step) + ',' + str(total_time) + "\n")
             f.close()
             print("-------------------Episode {} finished after {} steps-------------------".format(i_episode+1, step))
             print ("total_reward : {}".format(total_reward))
@@ -386,6 +389,7 @@ for i_episode in range(n_episode):
             print ("epsilon : {}".format(epsilon))
             print ("update_times : {}".format(update_times))
             print ("target_update_times: {}".format(target_update_times))
+            print ("total_time: {}".format(total_time))
             break
 
     if total_step > n_step:
