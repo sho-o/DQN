@@ -48,6 +48,10 @@ parser.add_argument('--inputslides', '-sl', type=int, default=4,
                     help='number of input slides')
 parser.add_argument('--render', '-r', type=int, default=0,
                     help='rendor or not')
+parser.add_argument('--initial_network', '-in', type=int, default=0,
+                    help='use initial_network or not')
+parser.add_argument('--load', '-l', type=str, default='Pong-v0_.model',
+                    help='initial network')
 
 args = parser.parse_args()
 
@@ -243,6 +247,8 @@ input_slides = args.inputslides
 batch_size = args.batchsize
 render = args.render
 n_step = args.n_step
+ini_net = args.initial_network
+load = arg.load
 epsilon_decrease = 0.9/(args.epsilon_end-args.initial)
 epsilon = 1.0
 total_step = 0
@@ -250,6 +256,8 @@ update_times = 0
 target_update_times = 0
 eval_counter = 0
 max_average_reward = -10*6
+if ini_net = 1:
+    epsilon = 0.1
 
 def evaluation():
     global env_eval
@@ -312,6 +320,9 @@ def evaluation():
 env = gym.make(name)
 env_eval = gym.make(name)
 dqn = DQN(gpu, env.action_space.n, memory_size, input_slides, batch_size)
+if ini_net == 1:
+    print "-----------------use {} as initial network-------------------".format(load)
+    serializers.load_npz('network/{}'.format(load), dqn.model)
 preprocess = Preprocess()
 start = time.time()
 

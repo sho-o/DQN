@@ -12,12 +12,14 @@ import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='DoomDefendCenter-v0', type=str,
-                    help='game name')                 
+                    help='game name')
+parser.add_argument('--comment', '-c', default='', type=str,
+                    help='comment for moniter')                     
 parser.add_argument('--gpu', '-g', default=0, type=int,
                     help='GPU ID (negative value indicates CPU)')
 parser.add_argument('--randomskip', '-rs', default=1, type=int,
                     help='randomskip the frames or not')
-parser.add_argument('--n_episode', '-ne', default=10**5, type=int,
+parser.add_argument('--n_episode', '-ne', default=120, type=int,
                     help='number of episode to learn')
 parser.add_argument('--actionskip', '-as', default=4, type=int,
                     help='number of action repeating')
@@ -27,6 +29,8 @@ parser.add_argument('--inputslides', '-sl', type=int, default=4,
                     help='number of input slides')
 parser.add_argument('--render', '-r', type=int, default=1,
                     help='rendor or not')
+parser.add_argument('--moniter', '-m', type=int, default=0,
+                    help='moniter or not')
 parser.add_argument('--load', '-l', type=str, default='DoomDefendCenter-v0.model',
                     help='load file')
 
@@ -122,6 +126,7 @@ class DQN():
 
 gpu = args.gpu
 name = args.name
+comment = args.comment
 randomskip = args.randomskip
 n_episode = args.n_episode
 action_skip = args.actionskip
@@ -129,13 +134,16 @@ input_slides = args.inputslides
 render = args.render
 epsilon = args.epsilon
 load = args.load
+moniter = args.moniter
 num_of_actions = 4
 
 env = gym.make(name)
+if moniter == 1:
+    env.monitor.start('moniter/{}_{}.mon'.format(name, comment))
+
 dqn = DQN(gpu, num_of_actions, input_slides)
 serializers.load_npz('network/{}'.format(load), dqn.model)
 preprocess = Preprocess()
-
 
 for i_episode in range(n_episode):
     total_reward = 0
@@ -163,3 +171,7 @@ for i_episode in range(n_episode):
         if done:
             print "total reward: {}".format(total_reward)
             break
+
+if moniter == 1:
+    env.monitor.close()         
+
