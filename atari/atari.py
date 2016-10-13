@@ -248,7 +248,7 @@ batch_size = args.batchsize
 render = args.render
 n_step = args.n_step
 ini_net = args.initial_network
-load = arg.load
+load = args.load
 epsilon_decrease = 0.9/(args.epsilon_end-args.initial)
 epsilon = 1.0
 total_step = 0
@@ -256,7 +256,7 @@ update_times = 0
 target_update_times = 0
 eval_counter = 0
 max_average_reward = -10*6
-if ini_net = 1:
+if ini_net == 1:
     epsilon = 0.1
 
 def evaluation():
@@ -323,6 +323,7 @@ dqn = DQN(gpu, env.action_space.n, memory_size, input_slides, batch_size)
 if ini_net == 1:
     print "-----------------use {} as initial network-------------------".format(load)
     serializers.load_npz('network/{}'.format(load), dqn.model)
+    serializers.load_npz('network/{}'.format(load), dqn.target_model)
 preprocess = Preprocess()
 start = time.time()
 
