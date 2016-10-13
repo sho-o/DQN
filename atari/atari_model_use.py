@@ -15,7 +15,7 @@ parser.add_argument('--name', '-N', default='Pong-v0', type=str,
                     help='game name')
 parser.add_argument('--comment', '-c', default='', type=str,
                     help='comment for moniter')                  
-parser.add_argument('--gpu', '-g', default=0, type=int,
+parser.add_argument('--gpu', '-g', default=-1, type=int,
                     help='GPU ID (negative value indicates CPU)')
 parser.add_argument('--randomskip', '-rs', default=0, type=int,
                     help='randomskip the frames or not')
@@ -93,18 +93,18 @@ class DQN():
 
         self.model = Q(num_of_actions)
 
-        if self.gpu == 1:
-            self.model.to_gpu()                
+        if self.gpu >= 0:
+            self.model.to_gpu(gpu)                
 
     def epsilon_greedy(self, s, epsilon):
         s = np.asarray(s.reshape(1, 4, 84, 84), dtype=np.float32)
-        if self.gpu == 1:
-            s = cuda.to_gpu(s)
+        if self.gpu >= 0:
+            s = cuda.to_gpu(s, device=gpu)
         s = Variable(s)
 
         q = self.model(s)
         q = q.data[0]
-        if self.gpu == 1:
+        if self.gpu >= 0:
             q = cuda.to_cpu(q)
 
         if np.random.rand() < epsilon:

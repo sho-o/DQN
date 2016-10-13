@@ -16,7 +16,7 @@ parser.add_argument('--name', '-N', default='DoomDefendCenter-v0', type=str,
                     help='game name')
 parser.add_argument('--comment', '-c', default='', type=str,
                     help='comment to distinguish output')                    
-parser.add_argument('--gpu', '-g', default=0, type=int,
+parser.add_argument('--gpu', '-g', default= -1, type=int,
                     help='GPU ID (negative value indicates CPU)')
 parser.add_argument('--randomskip', '-rs', default=1, type=int,
                     help='randomskip the frames or not')
@@ -120,9 +120,9 @@ class DQN():
         self.model = Q(num_of_actions)
         self.target_model = copy.deepcopy(self.model)
 
-        if self.gpu == 1:
-            self.model.to_gpu()
-            self.target_model.to_gpu()
+        if self.gpu >= 0:
+            self.model.to_gpu(gpu)
+            self.target_model.to_gpu(gpu)
 
         self.optimizer = optimizers.RMSpropGraves(lr=0.00025, alpha=0.95, momentum=0.95, eps=0.01)
         self.optimizer.setup(self.model)                 
@@ -147,9 +147,9 @@ class DQN():
             s_replay[i] = np.array(self.replay_memory[3][index[i]], dtype=np.float32)
             done_replay[i] = self.replay_memory[4][index[i]]
 
-        if self.gpu == 1:
-            s_prev_replay = cuda.to_gpu(s_prev_replay)
-            s_replay = cuda.to_gpu(s_replay)
+        if self.gpu >= 0:
+            s_prev_replay = cuda.to_gpu(s_prev_replay, device=gpu)
+            s_replay = cuda.to_gpu(s_replay, device=gpu)
 
         self.model.zerograds()
         loss = self.compute_loss(s_prev_replay, a_replay, r_replay, s_replay, done_replay)
@@ -165,12 +165,12 @@ class DQN():
 
         q = self.model(s_prev)
         q_data = q.data
-        if self.gpu == 1:
+        if self.gpu >= 0:
             q_data = cuda.to_cpu(q_data)
 
         q_target = self.target_model(s)
         q_target_data = q_target.data
-        if self.gpu == 1:
+        if self.gpu >= 0:
             q_target_data = cuda.to_cpu(q_target_data)
         max_q_target = np.asarray(np.amax(q_target_data, axis=1), dtype=np.float32)
 
@@ -183,15 +183,15 @@ class DQN():
                 tmp = r[i] + self.gamma * max_q_target[i]
             target[i, a[i]] = tmp
 
-        if self.gpu == 1:
-            target = cuda.to_gpu(target)
+        if self.gpu >= 0:
+            target = cuda.to_gpu(target, device=gpu)
         td = Variable(target) - q
         td_tmp = td.data + 1000.0 * (abs(td.data) <= 1)
         td_clip = td * (abs(td.data) <= 1) + td/abs(td_tmp) * (abs(td.data) > 1)
 
         zero = np.zeros((self.batch_size, self.num_of_actions), dtype=np.float32)
-        if self.gpu == 1:
-            zero = cuda.to_gpu(zero)
+        if self.gpu >= 0:
+            zero = cuda.to_gpu(zero, device=gpu)
         zero = Variable(zero)    
         loss = F.mean_squared_error(td_clip, zero)
         #f = open("loss/{}_{}.txt".format(name, comment), "a")
@@ -201,13 +201,13 @@ class DQN():
 
     def epsilon_greedy(self, s, epsilon):
         s = np.asarray(s.reshape(1, 4, 84, 84), dtype=np.float32)
-        if self.gpu == 1:
-            s = cuda.to_gpu(s)
+        if self.gpu >= 0:
+            s = cuda.to_gpu(s, device=gpu)
         s = Variable(s)
 
         q = self.model(s)
         q = q.data[0]
-        if self.gpu == 1:
+        if self.gpu >= 0:
             q = cuda.to_cpu(q)
             
         if np.random.rand() < epsilon:
