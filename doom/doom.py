@@ -186,8 +186,9 @@ class DQN():
         if self.gpu >= 0:
             target = cuda.to_gpu(target, device=gpu)
         td = Variable(target) - q
-        td_tmp = td.data + 1000.0 * (abs(td.data) <= 1)
-        td_clip = td * (abs(td.data) <= 1) + td/abs(td_tmp) * (abs(td.data) > 1)
+        with cuda.Device(gpu):
+            td_tmp = td.data + 1000.0 * (abs(td.data) <= 1)
+            td_clip = td * (abs(td.data) <= 1) + td/abs(td_tmp) * (abs(td.data) > 1)
 
         zero = np.zeros((self.batch_size, self.num_of_actions), dtype=np.float32)
         if self.gpu >= 0:
