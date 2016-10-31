@@ -30,6 +30,8 @@ parser.add_argument('--update', '-u', default=4, type=int,
                     help='update freaquency')
 parser.add_argument('--targetupdate', '-t', default=10**4, type=int,
                     help='target update freaquency')
+parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int,
+                    help='evaluation frequency')
 parser.add_argument('--eval_freq', '-ef', default=25*10**4, type=int,
                     help='evaluation frequency')
 parser.add_argument('--eval_step', '-es', default=52*10**4, type=int,
@@ -187,9 +189,8 @@ class DQN():
         if self.gpu >= 0:
             target = cuda.to_gpu(target, device=gpu)
         td = Variable(target) - q
-        with cuda.Device(gpu):
-            td_tmp = td.data + 1000.0 * (abs(td.data) <= 1)
-            td_clip = td * (abs(td.data) <= 1) + td/abs(td_tmp) * (abs(td.data) > 1)
+        td_tmp = td.data + 1000.0 * (abs(td.data) <= 1)
+        td_clip = td * (abs(td.data) <= 1) + td/abs(td_tmp) * (abs(td.data) > 1)
 
         zero = np.zeros((self.batch_size, self.num_of_actions), dtype=np.float32)
         if self.gpu >= 0:
@@ -239,6 +240,7 @@ n_episode = args.n_episode
 action_skip = args.actionskip
 update_freq = args.update
 target_update_freq = args.targetupdate
+save_freq = args.save_freq
 eval_freq = args.eval_freq
 eval_step = args.eval_step
 eval_epsilon = args.eval_epsilon
@@ -256,14 +258,16 @@ total_step = 0
 update_times = 0
 target_update_times = 0
 eval_counter = 0
-max_average_reward = -10*6
+#max_average_reward = -10*6
 if ini_net == 1:
     epsilon = 0.1
+if gpu >= 0:
+    cuda.get_device(gpu).use()
 
 def evaluation():
     global env_eval
     global eval_counter
-    global max_average_reward
+    ##global max_average_reward
 
     total_step = 0
     accum_reward = 0
@@ -310,12 +314,12 @@ def evaluation():
             f = open("evaluation/{}_{}.txt".format(name, comment), "a")
             f.write(str(eval_counter) + "," + str(average) + "," + str(time.time()-start) + "\n")
             f.close()
-            if average > max_average_reward:
-                max_average_reward = copy.deepcopy(average)
-                print "Evaluation {}: max average reward is {}".format(eval_counter, max_average_reward)
-                print "-------------------------saving the model-------------------------------"
-                serializers.save_npz('network/{}_{}.model'.format(name, comment), dqn.model)
-            break
+            #if average > max_average_reward:
+                #max_average_reward = copy.deepcopy(average)
+                #print "Evaluation {}: max average reward is {}".format(eval_counter, max_average_reward)
+                #print "-------------------------saving the model-------------------------------"
+                #serializers.save_npz('network/{}_{}.model'.format(name, comment), dqn.model)
+            #break
 
 #main
 env = gym.make(name)
@@ -360,9 +364,10 @@ for i_episode in range(n_episode):
 
         s_prev = copy.deepcopy(s)
         s = np.asanyarray([s[1], s[2], s[3], obs_processed], dtype=np.uint8)
-        #plt.imshow(s[3])
         #plt.gray()
-        #plt.show()
+        #plt.imshow(s[3])
+        #plt.pause(0.0001)
+        #plt.clf()
 
         r = preprocess.reward_clip(reward)
 
@@ -390,6 +395,10 @@ for i_episode in range(n_episode):
             if total_step % eval_freq == 0:
                 print "-----------------------------Evaluation--------------------------------"
                 evaluation()
+
+            if total_step % save_freq == 0:
+                print "-------------------------saving the model-------------------------------"
+                serializers.save_npz('network/{}_{}.model'.format(name, comment), dqn.model)
 
         if done:
             total_time = time.time()-start
