@@ -33,6 +33,8 @@ parser.add_argument('--moniter', '-m', type=int, default=0,
                     help='moniter or not')
 parser.add_argument('--load', '-l', type=str, default='Pong-v0.model',
                     help='load file')
+parser.add_argument('--q_visualize', '-q', type=int, default=0,
+                    help='q_visualization')
 
 args = parser.parse_args()
 
@@ -106,6 +108,14 @@ class DQN():
         q = q.data[0]
         if self.gpu >= 0:
             q = cuda.to_cpu(q)
+        
+        if q_visualize == 1:
+            X = np.arange(q.shape[0])
+            Y = q
+            plt.bar(X, Y)
+            plt.ylim(-2, 2)
+            plt.pause(0.0001)
+            plt.clf()
 
         if np.random.rand() < epsilon:
             action = np.random.randint(0, self.num_of_actions)
@@ -125,6 +135,7 @@ render = args.render
 epsilon = args.epsilon
 load = args.load
 moniter = args.moniter
+q_visualize = args.q_visualize
 
 env = gym.make(name)
 if moniter == 1:
@@ -133,7 +144,6 @@ if moniter == 1:
 dqn = DQN(gpu, env.action_space.n, input_slides)
 serializers.load_npz('network/{}'.format(load), dqn.model)
 preprocess = Preprocess()
-
 
 for i_episode in range(n_episode):
     total_reward = 0
@@ -165,6 +175,11 @@ for i_episode in range(n_episode):
 
         s_prev = copy.deepcopy(s)
         s = np.asanyarray([s[1], s[2], s[3], obs_processed], dtype=np.uint8)
+
+        #plt.gray()
+        #plt.imshow(s[3])
+        #plt.pause(0.0001)
+        #plt.clf()
 
         r = preprocess.reward_clip(reward)
  

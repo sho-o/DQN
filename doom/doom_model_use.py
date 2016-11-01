@@ -9,6 +9,7 @@ import chainer.links as L
 import argparse
 import copy
 import matplotlib.pyplot as plt
+import gym_pull
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='DoomDefendCenter-v0', type=str,
@@ -33,6 +34,9 @@ parser.add_argument('--moniter', '-m', type=int, default=0,
                     help='moniter or not')
 parser.add_argument('--load', '-l', type=str, default='DoomDefendCenter-v0.model',
                     help='load file')
+parser.add_argument('--q_visualize', '-q', type=int, default=0,
+                    help='q_visualization')
+
 
 args = parser.parse_args()
 
@@ -107,6 +111,14 @@ class DQN():
         if self.gpu >= 0:
             q = cuda.to_cpu(q)
 
+        if q_visualize == 1:
+        	X = np.arange(q.shape[0])
+        	Y = q
+        	plt.bar(X, Y)
+        	plt.ylim(0, 4.5)
+        	plt.pause(0.0001)
+        	plt.clf()    
+
         if np.random.rand() < epsilon:
             action = np.random.randint(0, self.num_of_actions)
         else:
@@ -135,9 +147,10 @@ render = args.render
 epsilon = args.epsilon
 load = args.load
 moniter = args.moniter
+q_visualize = args.q_visualize
 num_of_actions = 4
 
-env = gym.make(name)
+env = gym.make('ppaquette/{}'.format(name))
 if moniter == 1:
     env.monitor.start('moniter/{}_{}.mon'.format(name, comment))
 
@@ -163,6 +176,10 @@ for i_episode in range(n_episode):
 
         s_prev = copy.deepcopy(s)
         s = np.asanyarray([s[1], s[2], s[3], obs_processed], dtype=np.uint8)
+
+        #plt.imshow(s[3])
+        #plt.gray()
+        #plt.show()
 
         r = preprocess.reward_clip(reward)
  
