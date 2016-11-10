@@ -11,51 +11,31 @@ import argparse
 import copy
 import matplotlib.pyplot as plt
 import time
-import gym_pull
+import ppaquette_gym_doom
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', '-N', default='DoomDefendCenter-v0', type=str,
-                    help='game name')
-parser.add_argument('--comment', '-c', default='', type=str,
-                    help='comment to distinguish output')                    
-parser.add_argument('--gpu', '-g', default= -1, type=int,
-                    help='GPU ID (negative value indicates CPU)')
-parser.add_argument('--randomskip', '-rs', default=1, type=int,
-                    help='randomskip the frames or not')
-parser.add_argument('--n_episode', '-ne', default=10**5, type=int,
-                    help='number of episode to learn')
-parser.add_argument('--n_step', '-n', default=5*10**7, type=int,
-                    help='number of steps to learn')
-parser.add_argument('--actionskip', '-as', default=4, type=int,
-                    help='number of action repeating')
-parser.add_argument('--update', '-u', default=4, type=int,
-                    help='update freaquency')
-parser.add_argument('--targetupdate', '-t', default=10**4, type=int,
-                    help='target update freaquency')
-parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int,
-                    help='evaluation frequency')
-parser.add_argument('--eval_freq', '-ef', default=10*10**4, type=int,
-                    help='evaluation frequency')
-parser.add_argument('--eval_step', '-es', default=10*10**4, type=int,
-                    help='evaluation steps')
-parser.add_argument('--eval_epsilon', '-ee', default=0.05, type=float,
-                    help='evaluation epsilon')
-parser.add_argument('--initial', '-i', default=5*10**4, type=int,
-                    help='number of initial exploration')
-parser.add_argument('--epsilon_end', '-ep', default=10**6, type=float,
-                    help='the step number of the end of epsilon decrease')
-parser.add_argument('--batchsize', '-b', type=int, default=32,
-                    help='learning minibatch size')
-parser.add_argument('--memorysize', '-m', type=int, default=10**6,
-                    help='replay memory size')
-parser.add_argument('--inputslides', '-sl', type=int, default=4,
-                    help='number of input slides')
-parser.add_argument('--render', '-r', type=int, default=0,
-                    help='rendor or not')
-parser.add_argument('--initial_network', '-in', type=int, default=0,
-                    help='use initial_network or not')
-parser.add_argument('--load', '-l', type=str, default='DoomDefendCenter-v0_.model',
-                    help='initial network')
+parser.add_argument('--name', '-N', default='DoomDefendCenter-v0', type=str, help='game name')
+parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')                    
+parser.add_argument('--gpu', '-g', default= -1, type=int, help='GPU ID (negative value indicates CPU)')
+parser.add_argument('--randomskip', '-rs', default=1, type=int, help='randomskip the frames or not')
+parser.add_argument('--n_episode', '-ne', default=10**5, type=int, help='number of episode to learn')
+parser.add_argument('--n_step', '-n', default=5*10**7, type=int, help='number of steps to learn')
+parser.add_argument('--actionskip', '-as', default=4, type=int, help='number of action repeating')
+parser.add_argument('--update', '-u', default=4, type=int, help='update freaquency')
+parser.add_argument('--targetupdate', '-t', default=10**4, type=int, help='target update freaquency')
+parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int, help='evaluation frequency')
+parser.add_argument('--eval_freq', '-ef', default=10*10**4, type=int, help='evaluation frequency')
+parser.add_argument('--eval_step', '-es', default=10*10**4, type=int, help='evaluation steps')
+parser.add_argument('--eval_epsilon', '-ee', default=0.05, type=float, help='evaluation epsilon')
+parser.add_argument('--eval_switch', '-e', default=0, type=int, help='evaluation switch')
+parser.add_argument('--initial', '-i', default=5*10**4, type=int, help='number of initial exploration')
+parser.add_argument('--epsilon_end', '-ep', default=10**6, type=float, help='the step number of the end of epsilon decrease')
+parser.add_argument('--batchsize', '-b', type=int, default=32, help='learning minibatch size')
+parser.add_argument('--memorysize', '-m', type=int, default=10**6, help='replay memory size')
+parser.add_argument('--inputslides', '-sl', type=int, default=4, help='number of input slides')
+parser.add_argument('--render', '-r', type=int, default=0, help='rendor or not')
+parser.add_argument('--initial_network', '-in', type=int, default=0, help='use initial_network or not')
+parser.add_argument('--load', '-l', type=str, default='DoomDefendCenter-v0_.model', help='initial network')
 args = parser.parse_args()
 
 
@@ -252,6 +232,7 @@ save_freq = args.save_freq
 eval_freq = args.eval_freq
 eval_step = args.eval_step
 eval_epsilon = args.eval_epsilon
+eval_switch = args.eval_switch
 initial_exploration = args.initial
 memory_size = args.memorysize
 input_slides = args.inputslides
@@ -392,7 +373,7 @@ for i_episode in range(n_episode):
             if epsilon < 0.1:
                 epsilon = 0.1   
 
-            if total_step % eval_freq == 0:
+            if total_step % eval_freq == 0 and eval_switch == 1:
                 print "-----------------------------Evaluation--------------------------------"
                 evaluation()
 
