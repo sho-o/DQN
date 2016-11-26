@@ -110,14 +110,12 @@ class EC_RP():
 		else:
 			q_tmp[data["action"]] = np.append(q_tmp[data["action"]], R)
 			s_tmp[data["action"]] = np.append(s_tmp[data["action"]], data["s_prev"].reshape(1,64), axis=0)
-			delete_count[data["action"]] += 1
 
-	def delete(self, delete_list, delete_count):
+	def delete(self, delete_list):
 		for a in range(num_of_actions):
 			#print q_tmp[a].shape
 			#print s_tmp[a].shape
 			#print len(delete_list[a])
-			#print delete_count[a]
 			q_tmp[a] = np.delete(q_tmp[a], delete_list[a], axis=0)
 			s_tmp[a] = np.delete(s_tmp[a], delete_list[a], axis=0)
 			q_tmp[a] = np.delete(q_tmp[a], np.s_[0:(q_tmp[a].shape[0]-table_size)], axis=0)
@@ -156,7 +154,6 @@ for i_episode in range(n_episode):
 	neigh = [[]]*num_of_actions
 	temporal_memory = []
 	delete_list = [[]]*num_of_actions
-	delete_count = [0]*num_of_actions
 	step = 0
 	total_reward = 0
 	R = 0
@@ -213,7 +210,7 @@ for i_episode in range(n_episode):
 				R = temporal_memory[step - t - 1]["reward"] + gamma * R
 				ec_rp.update(temporal_memory[step - t - 1], R)
 			print "delete"
-			ec_rp.delete(delete_list, delete_count)
+			ec_rp.delete(delete_list)
 
 			total_time = time.time()-start
 			f = open("log/{}_{}.txt".format(name, comment), "a")
