@@ -143,6 +143,7 @@ NN_dist = args.NearestNeighbor_dist
 if gpu >= 0:
 	cuda.get_device(gpu).use()
 random_matrix = np.random.randn(84*84, 64)
+
 #main
 env = gym.make(name)
 num_of_actions = env.action_space.n
