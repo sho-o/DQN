@@ -29,100 +29,104 @@ parser.add_argument('--NearestNeighbor_dist', '-d', type=str, default='euclidean
 parser.add_argument('--gamma', '-gam', type=float, default=1)
 
 args = parser.parse_args()
-
-
 class Preprocess():
-    def gray(self, obs):
-        obs_gray = 0.299*obs[:, :, 0] + 0.587*obs[:, :, 1] + 0.114*obs[:, :, 2]
-        return obs_gray
+	def gray(self, obs):
+		obs_gray = 0.299*obs[:, :, 0] + 0.587*obs[:, :, 1] + 0.114*obs[:, :, 2]
+		return obs_gray
 
-    def max(self, obs1, obs2):
-        obs_max = np.maximum(obs1, obs2)
-        return obs_max
+	def max(self, obs1, obs2):
+		obs_max = np.maximum(obs1, obs2)
+		return obs_max
 
-    def downscale(self, obs):
-        obs_down = spm.imresize(obs, (84, 84))
-        return obs_down
+	def downscale(self, obs):
+		obs_down = spm.imresize(obs, (84, 84))
+		return obs_down
 
-    def one(self, obs):
-        processed = self.downscale(self.gray(obs))
-        return processed
+	def one(self, obs):
+		processed = self.downscale(self.gray(obs))
+		return processed
 
-    def two(self, obs1, obs2):
-        processed = self.downscale(self.gray(self.max(obs1, obs2)))
-        return processed
+	def two(self, obs1, obs2):
+		processed = self.downscale(self.gray(self.max(obs1, obs2)))
+		return processed
 
+class EC_RP():
+	def __init__(self):
+		self.q_table = np.zeros((num_of_actions, table_size))
+		self.s_table = np.zeros((num_of_actions, table_size, 64))
 
-class EC_RP(): 
-    def __init__(self):
-        self.q_table = np.zeros((num_of_actions, table_size))
-        self.s_table = np.zeros((num_of_actions, table_size, 64))
+	def RP(self, s):
+		s_64 = np.dot(s.reshape(1, 84*84), random_matrix)
+		return s_64
 
-    def RP(self, s):
-    	s_64 = np.dot(s.reshape(1, 84*84), random_matrix)
-        return s_64
+	def NN(self, s, a):
+		indices = neigh[a].kneighbors(s, return_distance=False) #.reshape(1, 64))
+		Q_neighbor = self.q_table[a][indices]
+		Q_ave = np.average(Q_neighbor)
+		return Q_ave
 
-    def NN(self, s, a):
-       	indices = neigh[a].kneighbors(s, return_distance=False) #.reshape(1, 64))
-       	Q_neighbor = self.q_table[a][indices]
-       	Q_ave = np.average(Q_neighbor)
-        return Q_ave
+	def search(self, s, a):
+		dif = self.s_table[a] - s
+		match = dif.any(axis=1)
+		indices = np.where(match == False)
+		if indices[0].size == 0:
+			ex_flag = 0
+			index = 0
+		else:
+			ex_flag = 1
+			index = indices[0][0]
+		return ex_flag, index
 
-    def search(self, s, a):
-        dif = self.s_table[a] - s
-        match = dif.any(axis=1)
-        indices = np.where(match == False)
-        if indices[0].size == 0:
-            ex_flag = 0
-            index = 0
-        else:
-            ex_flag = 1
-            index = indices[0][0]    
-        return ex_flag, index
+	def Q(self, s):
+		q_all = np.zeros(num_of_actions)
+		ex_flag_all = np.zeros(num_of_actions)
+		index_all = np.zeros(num_of_actions)
+		for a in range(num_of_actions):
+			ex_flag, index = self.search(s, a)
+			if ex_flag == 1:
+				q_all[a] = self.q_table[a][index]
+			else:
+				q_all[a] = self.NN(s, a)
+			ex_flag_all[a] = ex_flag
+			index_all[a] = index
+		return q_all, ex_flag_all, index_all
 
-    def Q(self, s):
-        q_tmp = np.zeros(num_of_actions)
-        ex_flag_tmp = np.zeros(num_of_actions)
-        index_tmp = np.zeros(num_of_actions)
+	def epsilon_greedy(self, s, epsilon):
+		q, ex_flag, index = self.Q(s)
+		if np.random.rand() < epsilon:
+			action = np.random.randint(0, num_of_actions)
+		else:
+			candidate = np.where(q == np.amax(q))
+			action = np.random.choice(candidate[0])
+		return action, ex_flag[action], index[action]
 
-        for a in range(num_of_actions):
-            ex_flag, index = self.search(s, a)
-            if ex_flag == 1:
-                q_tmp[a] = self.q_table[a][index]
-            else:
-                q_tmp[a] = self.NN(s, a)
-            ex_flag_tmp[a] = ex_flag
-            index_tmp[a] = index    
-        return q_tmp, ex_flag_tmp, index_tmp
+	def update(self, data, R):
+		if data["ex_flag"] == 1:
+			new_q = max(R, self.q_table[data["action"]][data["index"]])
+			self.q_table[data["action"]][data["index"]] = new_q
+			q_tmp[data["action"]] = np.append(q_tmp[data["action"]], new_q)
+			s_tmp[data["action"]] = np.append(s_tmp[data["action"]], data["s_prev"].reshape(1,64), axis=0)
+			delete_list[data["action"]].append(data["index"])
+		else:
+			q_tmp[data["action"]] = np.append(q_tmp[data["action"]], R)
+			s_tmp[data["action"]] = np.append(s_tmp[data["action"]], data["s_prev"].reshape(1,64), axis=0)
+			delete_count[data["action"]] += 1
 
-    def epsilon_greedy(self, s, epsilon):
-    	q, ex_flag, index = self.Q(s)
-        if np.random.rand() < epsilon:
-            action = np.random.randint(0, num_of_actions)
-        else:
-        	candidate = np.where(q == np.amax(q))
-        	action = np.random.choice(candidate[0])    
-        return action, ex_flag[action], index[action]
-
-    def update(self, data, R):
-        if data["ex_flag"] == 1:
-            new_q = max(R, self.q_table[data["action"]][data["index"]]) 
-            self.q_table[data["action"]][data["index"]] = new_q
-            self.q_table[data["action"]] = np.append(self.q_table[data["action"]], new_q)
-            self.s_table[data["action"]] = np.append(self.s_table[data["action"]], data["s_prev"])
-            delete_list[data["action"]].append(data["index"])          
-        else:
-            self.q_table[data["action"]] = np.append(self.q_table[data["action"]], R)
-            self.s_table[data["action"]] = np.append(self.s_table[data["action"]], data["s_prev"])
-            delete_count[data["action"]] += 1
-		
 	def delete(self, delete_list, delete_count):
 		for a in range(num_of_actions):
-			self.q_table[a] = np.delete(self.q_table[a], delete_list[a], 0)
-			self.s_table[a] = np.delete(self.s_table[a], delete_list[a], 0)
-			self.q_table[a] = np.delete(self.q_table[a], np.s_[0:[delete_count[a]]], 0)
-			self.s_table[a] = np.delete(self.s_table[a], np.s_[0:[delete_count[a]]], 0)
-		 
+			#print q_tmp[a].shape
+			#print s_tmp[a].shape
+			#print len(delete_list[a])
+			#print delete_count[a]
+			q_tmp[a] = np.delete(q_tmp[a], delete_list[a], axis=0)
+			s_tmp[a] = np.delete(s_tmp[a], delete_list[a], axis=0)
+			q_tmp[a] = np.delete(q_tmp[a], np.s_[0:(q_tmp[a].shape[0]-table_size)], axis=0)
+			s_tmp[a] = np.delete(s_tmp[a], np.s_[0:(s_tmp[a].shape[0]-table_size)], axis=0)
+			#print q_tmp[a].shape
+			#print s_tmp[a].shape
+			self.q_table[a] = q_tmp[a]
+			self.s_table[a] = s_tmp[a]
+
 gpu = args.gpu
 name = args.name
 comment = args.comment
@@ -138,11 +142,9 @@ total_step = 0
 NN_k = args.NearestNeighbor_k
 NN_algo = args.NearestNeighbor_algo
 NN_dist = args.NearestNeighbor_dist
-
 if gpu >= 0:
-    cuda.get_device(gpu).use()
+	cuda.get_device(gpu).use()
 random_matrix = np.random.randn(84*84, 64)
-
 #main
 env = gym.make(name)
 num_of_actions = env.action_space.n
@@ -195,7 +197,7 @@ for i_episode in range(n_episode):
 		#plt.clf()
 
 		#r = preprocess.reward_clip(reward)
-		data = {"action":a, "s_prev":s_prev, "reward":reward, "ex_flag":ex_flag, "index":index}
+		data = {"action":int(a), "s_prev":s_prev, "reward":reward, "ex_flag":ex_flag, "index":int(index)}
 		temporal_memory.append(data)
 
 		step += 1
@@ -204,9 +206,13 @@ for i_episode in range(n_episode):
 		print "step{}".format(step)
 
 		if done:
+			q_tmp = list(ec_rp.q_table)
+			s_tmp = list(ec_rp.s_table)
+			print "update"
 			for t in range(step):
 				R = temporal_memory[step - t - 1]["reward"] + gamma * R
 				ec_rp.update(temporal_memory[step - t - 1], R)
+			print "delete"
 			ec_rp.delete(delete_list, delete_count)
 
 			total_time = time.time()-start
@@ -220,4 +226,4 @@ for i_episode in range(n_episode):
 			break
 
 		if total_step > n_step:
-			break    
+			break
