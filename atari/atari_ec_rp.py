@@ -56,39 +56,35 @@ class EC_RP():
 		self.s_table = np.zeros((num_of_actions, table_size, 64))
 
 	def RP(self, s):
+		#RP_start = time.time()
 		s_64 = np.dot(s.reshape(1, 84*84), random_matrix)
+		#RP_end = time.time() - RP_start
+		#print "RP:{}".format(RP_end)
 		return s_64
 
 	def NN(self, s, a):
-		indices = neigh[a].kneighbors(s, return_distance=False) #.reshape(1, 64))
-		Q_neighbor = self.q_table[a][indices]
-		Q_ave = np.average(Q_neighbor)
-		return Q_ave
-
-	def search(self, s, a):
-		dif = self.s_table[a] - s
-		match = dif.any(axis=1)
-		indices = np.where(match == False)
-		if indices[0].size == 0:
-			ex_flag = 0
-			index = 0
-		else:
+		distance, indices = neigh[a].kneighbors(s) #.reshape(1, 64))
+		if distance[0][0] == 0:
+			Q = self.q_table[a][indices[0][0]]
 			ex_flag = 1
 			index = indices[0][0]
-		return ex_flag, index
+		else:
+			Q_neighbor = self.q_table[a][indices]
+			Q = np.average(Q_neighbor)
+			ex_flag = 0
+			index = 0
+		return Q, ex_flag, index
 
 	def Q(self, s):
-		q_all = np.zeros(num_of_actions)
 		ex_flag_all = np.zeros(num_of_actions)
-		index_all = np.zeros(num_of_actions)
+		index_all = np.zeros(num_of_actions, dtype=int)
+		q_all = np.zeros(num_of_actions)
+
+		NN_start = time.time()
 		for a in range(num_of_actions):
-			ex_flag, index = self.search(s, a)
-			if ex_flag == 1:
-				q_all[a] = self.q_table[a][index]
-			else:
-				q_all[a] = self.NN(s, a)
-			ex_flag_all[a] = ex_flag
-			index_all[a] = index
+			q_all[a], index_all[a], ex_flag_all[a] = self.NN(s, a)
+		NN_end = time.time() - NN_start
+		print "NN:{}".format(NN_end)
 		return q_all, ex_flag_all, index_all
 
 	def epsilon_greedy(self, s, epsilon):
@@ -106,22 +102,23 @@ class EC_RP():
 			self.q_table[data["action"]][data["index"]] = new_q
 			q_tmp[data["action"]] = np.append(q_tmp[data["action"]], new_q)
 			s_tmp[data["action"]] = np.append(s_tmp[data["action"]], data["s_prev"].reshape(1,64), axis=0)
-			delete_list[data["action"]].append(data["index"])
+			if hold_matrix[data["action"]][data["index"]] == -1:
+				delete_list[data["action"]].append(data["index"])
+			else:
+				delete_list[data["action"]].append(hold_matrix[data["action"]][data["index"]])
+			hold_matrix[data["action"]][data["index"]] = q_tmp[data["action"]].shape[0] - 1
 		else:
 			q_tmp[data["action"]] = np.append(q_tmp[data["action"]], R)
 			s_tmp[data["action"]] = np.append(s_tmp[data["action"]], data["s_prev"].reshape(1,64), axis=0)
+			delete_count[data["action"]] += 1
+			hold_matrix[data["action"]][data["index"]] = q_tmp[data["action"]].shape[0] - 1
 
 	def delete(self, delete_list):
 		for a in range(num_of_actions):
-			#print q_tmp[a].shape
-			#print s_tmp[a].shape
-			#print len(delete_list[a])
 			q_tmp[a] = np.delete(q_tmp[a], delete_list[a], axis=0)
 			s_tmp[a] = np.delete(s_tmp[a], delete_list[a], axis=0)
-			q_tmp[a] = np.delete(q_tmp[a], np.s_[0:(q_tmp[a].shape[0]-table_size)], axis=0)
-			s_tmp[a] = np.delete(s_tmp[a], np.s_[0:(s_tmp[a].shape[0]-table_size)], axis=0)
-			#print q_tmp[a].shape
-			#print s_tmp[a].shape
+			q_tmp[a] = np.delete(q_tmp[a], np.s_[0:delete_count[a]], axis=0)
+			s_tmp[a] = np.delete(s_tmp[a], np.s_[0:delete_count[a]], axis=0)
 			self.q_table[a] = q_tmp[a]
 			self.s_table[a] = s_tmp[a]
 
@@ -144,6 +141,7 @@ if gpu >= 0:
 	cuda.get_device(gpu).use()
 random_matrix = np.random.randn(84*84, 64)
 
+
 #main
 env = gym.make(name)
 num_of_actions = env.action_space.n
@@ -160,11 +158,11 @@ for i_episode in range(n_episode):
 	R = 0
 	obs = env.reset()
 	s = ec_rp.RP(np.zeros((84, 84), dtype=np.uint8))
+
 	print "start"
 	for j in range(num_of_actions):
 		neigh[j] = NearestNeighbors(n_neighbors=NN_k, algorithm=NN_algo, metric=NN_dist)
 		neigh[j].fit(ec_rp.s_table[j])
-		print "end{}".format(j)
 
 	while (True):
 		if render == 1:
@@ -206,12 +204,17 @@ for i_episode in range(n_episode):
 		if done:
 			q_tmp = list(ec_rp.q_table)
 			s_tmp = list(ec_rp.s_table)
+			hold_matrix = -np.ones((num_of_actions, table_size), dtype=int)
+			delete_count = [0]*num_of_actions
+
 			print "update"
 			for t in range(step):
 				R = temporal_memory[step - t - 1]["reward"] + gamma * R
 				ec_rp.update(temporal_memory[step - t - 1], R)
 			print "delete"
 			ec_rp.delete(delete_list)
+			print delete_count
+			print delete_list
 
 			total_time = time.time()-start
 			f = open("log/{}_{}.txt".format(name, comment), "a")
