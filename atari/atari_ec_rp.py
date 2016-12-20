@@ -20,13 +20,15 @@ parser.add_argument('--randomskip', '-rs', default=0, type=int, help='randomskip
 parser.add_argument('--n_episode', '-ne', default=10**5, type=int, help='number of episode to learn')
 parser.add_argument('--n_step', '-n', default=5*10**7, type=int, help='number of steps to learn')
 parser.add_argument('--actionskip', '-as', default=4, type=int, help='number of action repeating')
-parser.add_argument('--table_size', '-m', type=int, default=10**6, help='table size')
+parser.add_argument('--table_size', '-t', type=int, default=10**6, help='table size')
 parser.add_argument('--render', '-r', type=int, default=0, help='rendor or not')
 parser.add_argument('--epsilon', '-e', type=float, default=0.005)
 parser.add_argument('--NearestNeighbor_k', '-k', type=int, default=11)
-parser.add_argument('--NearestNeighbor_algo', '-a', type=str, default='brute')
+parser.add_argument('--NearestNeighbor_algo', '-a', type=str, default='kd_tree')
 parser.add_argument('--NearestNeighbor_dist', '-d', type=str, default='euclidean')
+parser.add_argument('--leaf_size', '-l', type=int, default='1000000')
 parser.add_argument('--gamma', '-gam', type=float, default=1)
+
 
 args = parser.parse_args()
 class Preprocess():
@@ -52,8 +54,8 @@ class Preprocess():
 
 class EC_RP():
 	def __init__(self):
-		self.q_table = np.zeros((num_of_actions, table_size))
-		self.s_table = np.zeros((num_of_actions, table_size, 64))
+		self.q_table = map(list, list(np.zeros((num_of_actions, table_size))))
+		self.s_table = map(list, list(np.random.rand(num_of_actions, table_size, 64)))
 
 	def RP(self, s):
 		#RP_start = time.time()
@@ -69,8 +71,9 @@ class EC_RP():
 			ex_flag = 1
 			index = indices[0][0]
 		else:
-			Q_neighbor = self.q_table[a][indices]
-			Q = np.average(Q_neighbor)
+			indices_list = list(indices[0])
+			Q_neighbor = [self.q_table[a][i] for i in indices_list]
+			Q = sum(Q_neighbor)/len(Q_neighbor)
 			ex_flag = 0
 			index = 0
 		return Q, ex_flag, index
@@ -84,7 +87,7 @@ class EC_RP():
 		for a in range(num_of_actions):
 			q_all[a], index_all[a], ex_flag_all[a] = self.NN(s, a)
 		NN_end = time.time() - NN_start
-		print "NN:{}".format(NN_end)
+		#print "NN:{}".format(NN_end)
 		return q_all, ex_flag_all, index_all
 
 	def epsilon_greedy(self, s, epsilon):
@@ -100,27 +103,39 @@ class EC_RP():
 		if data["ex_flag"] == 1:
 			new_q = max(R, self.q_table[data["action"]][data["index"]])
 			self.q_table[data["action"]][data["index"]] = new_q
-			q_tmp[data["action"]] = np.append(q_tmp[data["action"]], new_q)
-			s_tmp[data["action"]] = np.append(s_tmp[data["action"]], data["s_prev"].reshape(1,64), axis=0)
+			q_tmp[data["action"]].append(new_q)
+			s_tmp[data["action"]].append(data["s_prev"].reshape(64))
 			if hold_matrix[data["action"]][data["index"]] == -1:
 				delete_list[data["action"]].append(data["index"])
 			else:
 				delete_list[data["action"]].append(hold_matrix[data["action"]][data["index"]])
-			hold_matrix[data["action"]][data["index"]] = q_tmp[data["action"]].shape[0] - 1
+			hold_matrix[data["action"]][data["index"]] = len(q_tmp[data["action"]]) + table_size - 1
 		else:
-			q_tmp[data["action"]] = np.append(q_tmp[data["action"]], R)
-			s_tmp[data["action"]] = np.append(s_tmp[data["action"]], data["s_prev"].reshape(1,64), axis=0)
+			q_tmp[data["action"]].append(R)
+			s_tmp[data["action"]].append(data["s_prev"].reshape(64))
 			delete_count[data["action"]] += 1
-			hold_matrix[data["action"]][data["index"]] = q_tmp[data["action"]].shape[0] - 1
+			hold_matrix[data["action"]][data["index"]] = len(q_tmp[data["action"]]) + table_size - 1
 
 	def delete(self, delete_list):
+		count = 0
 		for a in range(num_of_actions):
-			q_tmp[a] = np.delete(q_tmp[a], delete_list[a], axis=0)
-			s_tmp[a] = np.delete(s_tmp[a], delete_list[a], axis=0)
-			q_tmp[a] = np.delete(q_tmp[a], np.s_[0:delete_count[a]], axis=0)
-			s_tmp[a] = np.delete(s_tmp[a], np.s_[0:delete_count[a]], axis=0)
-			self.q_table[a] = q_tmp[a]
-			self.s_table[a] = s_tmp[a]
+			s2 = time.time()
+			#print self.s_table[a].shape
+			#print s_table[1].shape
+			self.q_table[a].extend(q_tmp[a])
+			self.s_table[a].extend(s_tmp[a])
+			s3 = time.time()
+			for r in delete_list[a]:
+				q_table[a].pop(r-count)
+				s_table[a].pop(r-count)
+				count += 1
+			s4 = time.time()
+			del self.q_table[a][:delete_count[a]]
+			del self.s_table[a][:delete_count[a]]
+			s5 = time.time()
+			#print s3-s2
+			#print s4-s3
+			#print s5-s4
 
 gpu = args.gpu
 name = args.name
@@ -137,6 +152,7 @@ total_step = 0
 NN_k = args.NearestNeighbor_k
 NN_algo = args.NearestNeighbor_algo
 NN_dist = args.NearestNeighbor_dist
+leaf_size = args.leaf_size
 if gpu >= 0:
 	cuda.get_device(gpu).use()
 random_matrix = np.random.randn(84*84, 64)
@@ -152,19 +168,22 @@ start = time.time()
 for i_episode in range(n_episode):
 	neigh = [[]]*num_of_actions
 	temporal_memory = []
-	delete_list = [[]]*num_of_actions
 	step = 0
 	total_reward = 0
 	R = 0
 	obs = env.reset()
 	s = ec_rp.RP(np.zeros((84, 84), dtype=np.uint8))
 
-	print "start"
+	start_NN_set = time.time()
 	for j in range(num_of_actions):
-		neigh[j] = NearestNeighbors(n_neighbors=NN_k, algorithm=NN_algo, metric=NN_dist)
+		neigh[j] = NearestNeighbors(n_neighbors=NN_k, algorithm=NN_algo, metric=NN_dist, leaf_size=leaf_size)
 		neigh[j].fit(ec_rp.s_table[j])
+	end_NN_set = time.time() - start_NN_set
+	print "NN_set{}".format(end_NN_set)
 
+	epi_start = time.time()
 	while (True):
+		#print "step{}".format(step)
 		if render == 1:
 			env.render()
 		#ale
@@ -199,20 +218,32 @@ for i_episode in range(n_episode):
 		step += 1
 		total_step += 1
 		total_reward += reward
-		print "step{}".format(step)
+		#print "step_time:{}".format(time.time()-step_start)
 
 		if done:
-			q_tmp = list(ec_rp.q_table)
-			s_tmp = list(ec_rp.s_table)
+			q_tmp = []
+			s_tmp = []
+			delete_list = []
+			for a in range(num_of_actions):
+				q_tmp.append([])
+				s_tmp.append([])
+				delete_list.append([])
+
 			hold_matrix = -np.ones((num_of_actions, table_size), dtype=int)
 			delete_count = [0]*num_of_actions
 
-			print "update"
+			print "time_per_step:{}".format((time.time()-epi_start)/step)
+			#print "update"
+			update_start = time.time()
 			for t in range(step):
 				R = temporal_memory[step - t - 1]["reward"] + gamma * R
 				ec_rp.update(temporal_memory[step - t - 1], R)
-			print "delete"
+			print "update_time:{}".format(time.time()-update_start)
+
+			#print "delete"
+			delete_start = time.time()
 			ec_rp.delete(delete_list)
+			print "delete_time:{}".format(time.time()-delete_start)
 			print delete_count
 			print delete_list
 
