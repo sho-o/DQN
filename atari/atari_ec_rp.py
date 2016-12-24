@@ -24,7 +24,7 @@ parser.add_argument('--table_size', '-t', type=int, default=10**6, help='table s
 parser.add_argument('--render', '-r', type=int, default=0, help='rendor or not')
 parser.add_argument('--epsilon', '-e', type=float, default=0.005)
 parser.add_argument('--NearestNeighbor_k', '-k', type=int, default=11)
-parser.add_argument('--NearestNeighbor_algo', '-a', type=str, default='kd_tree')
+parser.add_argument('--NearestNeighbor_algo', '-a', type=str, default='brute')
 parser.add_argument('--NearestNeighbor_dist', '-d', type=str, default='euclidean')
 parser.add_argument('--leaf_size', '-l', type=int, default='1000000')
 parser.add_argument('--gamma', '-gam', type=float, default=1)
@@ -66,11 +66,19 @@ class EC_RP():
 
 	def NN(self, s, a):
 		distance, indices = neigh[a].kneighbors(s) #.reshape(1, 64))
-		if distance[0][0] == 0:
+		#print distance
+		if distance[0][0] < 1:
 			Q = self.q_table[a][indices[0][0]]
 			ex_flag = 1
 			index = indices[0][0]
+			#print index
 		else:
+			#if a==0:
+				#print s
+				#print step
+				#print "not"
+				#print distance[0]
+				#print s
 			indices_list = list(indices[0])
 			Q_neighbor = [self.q_table[a][i] for i in indices_list]
 			Q = sum(Q_neighbor)/len(Q_neighbor)
@@ -85,9 +93,10 @@ class EC_RP():
 
 		NN_start = time.time()
 		for a in range(num_of_actions):
-			q_all[a], index_all[a], ex_flag_all[a] = self.NN(s, a)
+			q_all[a], ex_flag_all[a], index_all[a] = self.NN(s, a)
 		NN_end = time.time() - NN_start
 		#print "NN:{}".format(NN_end)
+		#print ex_flag_all
 		return q_all, ex_flag_all, index_all
 
 	def epsilon_greedy(self, s, epsilon):
@@ -97,42 +106,66 @@ class EC_RP():
 		else:
 			candidate = np.where(q == np.amax(q))
 			action = np.random.choice(candidate[0])
+		#action = 0
+		#if ex_flag[action] != 1:
+			#print step
 		return action, ex_flag[action], index[action]
 
 	def update(self, data, R):
+		#if data["ex_flag"]
 		if data["ex_flag"] == 1:
+			#print "a"
+			#print R
 			new_q = max(R, self.q_table[data["action"]][data["index"]])
 			self.q_table[data["action"]][data["index"]] = new_q
 			q_tmp[data["action"]].append(new_q)
 			s_tmp[data["action"]].append(data["s_prev"].reshape(64))
 			if hold_matrix[data["action"]][data["index"]] == -1:
+				#print data["index"]
 				delete_list[data["action"]].append(data["index"])
 			else:
-				delete_list[data["action"]].append(hold_matrix[data["action"]][data["index"]])
+				if hold_counter[data["action"]][data["index"]] > 1:
+					delete_list[data["action"]].append(hold_matrix[data["action"]][data["index"]])
+				else:
+					delete_count[data["action"]] += 1
 			hold_matrix[data["action"]][data["index"]] = len(q_tmp[data["action"]]) + table_size - 1
+			hold_counter[data["action"]][data["index"]] += 1
 		else:
+			#print "b"
+			#print "not"
+			#print step
+			#print data["ex_flag"]
 			q_tmp[data["action"]].append(R)
 			s_tmp[data["action"]].append(data["s_prev"].reshape(64))
+			#print data["s_prev"]
 			delete_count[data["action"]] += 1
-			hold_matrix[data["action"]][data["index"]] = len(q_tmp[data["action"]]) + table_size - 1
+			#hold_matrix[data["action"]][data["index"]] = len(q_tmp[data["action"]]) + table_size - 1
 
 	def delete(self, delete_list):
 		count = 0
 		for a in range(num_of_actions):
+			#if a==0:
+				#print q_tmp[a]
 			s2 = time.time()
 			#print self.s_table[a].shape
 			#print s_table[1].shape
 			self.q_table[a].extend(q_tmp[a])
 			self.s_table[a].extend(s_tmp[a])
+			#if a==0:
+				#print self.q_table[a]
 			s3 = time.time()
 			for r in delete_list[a]:
-				q_table[a].pop(r-count)
-				s_table[a].pop(r-count)
+				self.q_table[a].pop(r-count)
+				self.s_table[a].pop(r-count)
 				count += 1
 			s4 = time.time()
+			#if a==0:
+				#print self.q_table[a]
 			del self.q_table[a][:delete_count[a]]
 			del self.s_table[a][:delete_count[a]]
 			s5 = time.time()
+			#if a==0:
+				#print self.q_table[a]
 			#print s3-s2
 			#print s4-s3
 			#print s5-s4
@@ -164,8 +197,12 @@ num_of_actions = env.action_space.n
 preprocess = Preprocess()
 ec_rp = EC_RP()
 start = time.time()
+#s_lis = []
+#s_lis_next = []
 
 for i_episode in range(n_episode):
+	#s_lis = copy.deepcopy(s_lis_next)
+
 	neigh = [[]]*num_of_actions
 	temporal_memory = []
 	step = 0
@@ -206,6 +243,11 @@ for i_episode in range(n_episode):
 
 		s_prev = copy.deepcopy(s)
 		s = ec_rp.RP(np.asanyarray(obs_processed, dtype=np.uint8))
+
+		#s_lis_next.append(s)
+		#if i_episode != 0:
+			#print s_lis[step]-s
+		
 		#plt.gray()
 		#plt.imshow(obs_processed)
 		#plt.pause(0.0001)
@@ -230,15 +272,19 @@ for i_episode in range(n_episode):
 				delete_list.append([])
 
 			hold_matrix = -np.ones((num_of_actions, table_size), dtype=int)
+			hold_counter = np.zeros((num_of_actions, table_size), dtype=int)
 			delete_count = [0]*num_of_actions
 
 			print "time_per_step:{}".format((time.time()-epi_start)/step)
 			#print "update"
 			update_start = time.time()
 			for t in range(step):
+				#print t
 				R = temporal_memory[step - t - 1]["reward"] + gamma * R
 				ec_rp.update(temporal_memory[step - t - 1], R)
 			print "update_time:{}".format(time.time()-update_start)
+			#print ec_rp.q_table[0]
+			#print len(ec_rp.q_table[0])
 
 			#print "delete"
 			delete_start = time.time()
@@ -246,6 +292,8 @@ for i_episode in range(n_episode):
 			print "delete_time:{}".format(time.time()-delete_start)
 			print delete_count
 			print delete_list
+			#print ec_rp.q_table[0]
+			#print ec_rp.q_table[0]
 
 			total_time = time.time()-start
 			f = open("log/{}_{}.txt".format(name, comment), "a")
