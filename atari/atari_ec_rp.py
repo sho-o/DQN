@@ -197,8 +197,6 @@ num_of_actions = env.action_space.n
 preprocess = Preprocess()
 ec_rp = EC_RP()
 start = time.time()
-#s_lis = []
-#s_lis_next = []
 
 for i_episode in range(n_episode):
 	#s_lis = copy.deepcopy(s_lis_next)
