@@ -322,9 +322,10 @@ if ini_net == 1:
     serializers.load_npz('network/{}'.format(load), dqn.model)
     serializers.load_npz('network/{}'.format(load), dqn.target_model)
 preprocess = Preprocess()
-start = time.time()
+game_start = time.time()
 
 for i_episode in range(n_episode):
+    episode_start = time.time()
     step = 0
     total_reward = 0
     obs = env.reset()
@@ -382,7 +383,8 @@ for i_episode in range(n_episode):
                 serializers.save_npz('network/{}_{}.model'.format(name, comment), dqn.model)    
 
         if done:
-            total_time = time.time()-start
+            episode_time = time.time() - episode_start
+            total_time = time.time()-game_start
             f = open("log/{}_{}.txt".format(name, comment), "a")
             f.write(str(i_episode+1) + "," + str(total_reward) + ',' + str(step) + ',' + str(total_step) + ',' + str(total_time) + "\n")
             f.close()
@@ -393,6 +395,8 @@ for i_episode in range(n_episode):
             print ("update_times : {}".format(update_times))
             print ("target_update_times: {}".format(target_update_times))
             print ("total_time: {}".format(total_time))
+            print ("episode_time: {}".format(episode_time))
+            print ("time/step: {}".format(episode_time/step))
             break
 
     if total_step > n_step:
