@@ -28,28 +28,28 @@ parser.add_argument('--pic_size', '-ps', type=int, default=28, help='nput pic si
 parser.add_argument('--discount', '-d', type=float, default=0.99, help='discount factor')
 args = parser.parse_args()
 
-comment = args.comment
-gpu = args.gpu
-pic_kind = args.pic_kind
-exp_policy = args.exp_policy
-epsilon_decrease_end = args.epsilon_decrease_end
-max_episode = args.max_episode
-max_step = args.max_step
-finish_step = args.finish_step
-q_update_freq = args.q_update_freq
-fixed_q_update_freq = args.fixed_q_update_freq
-save_freq = args.save_freq
-print_freq = args.print_freq
-initial_exploration = args.initial_exploration
-batch_size = args.batch_size
-memory_size = args.memory_size
-input_slides = args.input_slides
-net_type = args.net_type
-pic_size = args.pic_size
-discount = args.discount
-epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
+def run(args):
+	comment = args.comment
+	gpu = args.gpu
+	pic_kind = args.pic_kind
+	exp_policy = args.exp_policy
+	epsilon_decrease_end = args.epsilon_decrease_end
+	max_episode = args.max_episode
+	max_step = args.max_step
+	finish_step = args.finish_step
+	q_update_freq = args.q_update_freq
+	fixed_q_update_freq = args.fixed_q_update_freq
+	save_freq = args.save_freq
+	print_freq = args.print_freq
+	initial_exploration = args.initial_exploration
+	batch_size = args.batch_size
+	memory_size = args.memory_size
+	input_slides = args.input_slides
+	net_type = args.net_type
+	pic_size = args.pic_size
+	discount = args.discount
+	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
-def run():
 	run_start = time.time()
 	make_directries(comment, ["network", "log"])
 	if gpu >= 0:
@@ -125,4 +125,4 @@ def print_result(episode, steps, episode_reward, episode_time, epsilon, total_st
 	print ("run_time: {}".format(run_time))
 
 if __name__ == "__main__":
-	run()
+	run(args)
