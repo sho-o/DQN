@@ -5,7 +5,7 @@ import chainer.functions as F
 import network
 
 class Agent():
-	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount):
+	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr):
 		self.exp_policy = exp_policy
 		self.net_type = net_type
 		self.gpu = gpu
@@ -16,7 +16,10 @@ class Agent():
 		self.batch_size = batch_size
 		self.discount = discount
 		self.epsilon = 1.0
-		self.q = network.Q(self.num_of_actions)
+		if self.net_type == "full_connect":
+			self.q = network.Q(self.num_of_actions)
+		if self.net_type == "convolution":
+			self.q = network.Q_conv(self.num_of_actions)
 		self.fixed_q = copy.deepcopy(self.q)
 		self.replay_memory = {"s":np.zeros((self.memory_size, self.input_slides, self.size, self.size), dtype=np.uint8),
 							"a":np.zeros(self.memory_size, dtype=np.uint8),
@@ -26,7 +29,7 @@ class Agent():
 		if self.gpu >= 0:
 			self.q.to_gpu(self.gpu)
 			self.fixed_q.to_gpu(self.gpu)
-		self.optimizer = optimizers.RMSpropGraves(lr=0.00025, alpha=0.95, momentum=0.95, eps=0.01)
+		self.optimizer = optimizers.RMSpropGraves(lr=rms_lr, alpha=0.95, momentum=0.95, eps=rms_eps)
 		self.optimizer.setup(self.q)
 
 	def policy(self, s):
@@ -90,9 +93,11 @@ class Agent():
 		return s_batch, a_batch, r_batch, new_s_batch, done_batch
 
 	def compute_loss(self, s, a, r, new_s, done):
+		if self.net_type == "full_connect":
+			s = s.reshape(self.batch_size, self.input_slides*self.size*self.size)
+			new_s = new_s.reshape(self.batch_size, self.input_slides*self.size*self.size)
+
 		#gpu
-		s = s.reshape(self.batch_size, self.input_slides*self.size*self.size)
-		new_s = new_s.reshape(self.batch_size, self.input_slides*self.size*self.size)
 		if self.gpu >= 0:
 			s = cuda.to_gpu(s, device=self.gpu)
 			new_s = cuda.to_gpu(new_s, device=self.gpu)

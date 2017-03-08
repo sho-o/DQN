@@ -15,7 +15,6 @@ class Environment():
 			mnist.target = mnist.target.astype(np.int32)
 			indices = list(np.random.permutation(70000))
 			finish_flag = [0 for i in range(10)]
-			finish_flag[0] = 1
 			pics = [[] for i in range(10)]
 			for i in indices:
 				number = mnist.target[i]

@@ -26,6 +26,8 @@ parser.add_argument('--input_slides', '-is', type=int, default=1, help='number o
 parser.add_argument('--net_type', '-n', type=str, default="full_connect", help='network type')
 parser.add_argument('--pic_size', '-ps', type=int, default=28, help='nput pic size')
 parser.add_argument('--discount', '-d', type=float, default=0.99, help='discount factor')
+parser.add_argument('--rms_eps', '-re', type=float, default=0.01, help='RMSProp_epsilon')
+parser.add_argument('--rms_lr', '-lr', type=float, default=0.00025, help='RMSProp_learning_rate')
 args = parser.parse_args()
 
 def run(args):
@@ -48,6 +50,8 @@ def run(args):
 	net_type = args.net_type
 	pic_size = args.pic_size
 	discount = args.discount
+	rms_eps = args.rms_eps
+	rms_lr = args.rms_lr
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
 	run_start = time.time()
@@ -57,7 +61,7 @@ def run(args):
 	env = environment.Environment(pic_kind)
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
-	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount)
+	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr)
 	total_step = 0
 	
 	for episode in range(max_episode):
