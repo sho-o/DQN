@@ -5,6 +5,7 @@ from chainer import cuda, serializers
 import argparse
 import time
 import os
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
@@ -28,6 +29,8 @@ parser.add_argument('--pic_size', '-ps', type=int, default=28, help='nput pic si
 parser.add_argument('--discount', '-d', type=float, default=0.99, help='discount factor')
 parser.add_argument('--rms_eps', '-re', type=float, default=0.01, help='RMSProp_epsilon')
 parser.add_argument('--rms_lr', '-lr', type=float, default=0.00025, help='RMSProp_learning_rate')
+parser.add_argument('--optimizer_type', '-o', type=str, default="rmsprop", help='type of optimizer')
+parser.add_argument('--start_point', '-sp', type=int, default=1, help='start point')
 args = parser.parse_args()
 
 def run(args):
@@ -52,6 +55,9 @@ def run(args):
 	discount = args.discount
 	rms_eps = args.rms_eps
 	rms_lr = args.rms_lr
+	optimizer_type = args.optimizer_type
+	start_point = args.start_point
+	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
 	run_start = time.time()
@@ -61,7 +67,7 @@ def run(args):
 	env = environment.Environment(pic_kind)
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
-	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr)
+	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type)
 	total_step = 0
 	
 	for episode in range(max_episode):
@@ -69,7 +75,7 @@ def run(args):
 		env.make_episode_pics()
 		episode_reward = 0
 		episode_value = 0
-		s = [0,0]
+		s = s_init
 		pic_s = env.s_to_pic(s)
 		if total_step >= finish_step:
 			break
@@ -91,6 +97,7 @@ def run(args):
 					agt.q_update(total_step)
 				if total_step % fixed_q_update_freq == 0:
 					print "----------------------- fixed Q update ------------------------------"
+					agt.fixed_q_updqte()
 				if total_step % save_freq == 0:
 					print "----------------------- save the_model ------------------------------"
 					serializers.save_npz('result/{}/network/q.net'.format(comment), agt.q)

@@ -5,7 +5,7 @@ import chainer.functions as F
 import network
 
 class Agent():
-	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr):
+	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type):
 		self.exp_policy = exp_policy
 		self.net_type = net_type
 		self.gpu = gpu
@@ -15,6 +15,7 @@ class Agent():
 		self.input_slides = input_slides
 		self.batch_size = batch_size
 		self.discount = discount
+		self.optimizer_type = optimizer_type
 		self.epsilon = 1.0
 		if self.net_type == "full_connect":
 			self.q = network.Q(self.num_of_actions)
@@ -29,7 +30,12 @@ class Agent():
 		if self.gpu >= 0:
 			self.q.to_gpu(self.gpu)
 			self.fixed_q.to_gpu(self.gpu)
-		self.optimizer = optimizers.RMSpropGraves(lr=rms_lr, alpha=0.95, momentum=0.95, eps=rms_eps)
+		if self.optimizer_type == "rmsprop":
+			self.optimizer = optimizers.RMSpropGraves(lr=rms_lr, alpha=0.95, momentum=0.95, eps=rms_eps)
+		if self.optimizer_type == "sgd":
+			self.optimizer = optimizers.SGD(lr=0.01)
+		if self.optimizer_type == "adam":
+			self.optimizer = optimizers.Adam()
 		self.optimizer.setup(self.q)
 
 	def policy(self, s):
