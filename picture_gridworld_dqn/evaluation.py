@@ -4,20 +4,17 @@ import environment
 import copy
 
 class Evaluation():
-	def __init__(self, comment, pic_kind, s_init, actions, max_step, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type):
+	def __init__(self, comment, pic_kind, s_init, actions, max_step):
 		self.env = environment.Environment(pic_kind)
-		self.agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type)
-		self.agt.epsilon = 0
-		self.comment = comment
 		self.s_init = s_init
 		self.actions = actions
+		self.comment = comment
 		self.max_step = max_step
 		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
 		f.write("episode,total_step,reward,episode_step\n")
 		f.close()
 
-	def __call__(self, q, learning_episode, learning_total_step):
-		self.agt.q = q
+	def __call__(self, agt, learning_episode, learning_total_step):
 		for episode in range(1):
 			self.env.make_episode_pics()
 			episode_reward = 0
@@ -25,7 +22,7 @@ class Evaluation():
 			pic_s = self.env.s_to_pic(s)
 
 			for steps in range(self.max_step):
-				a, _ = self.agt.policy(pic_s)
+				a, _ = agt.policy(pic_s, eva=True)
 				new_s = self.env.generate_next_s(s, self.actions[a])
 				pic_new_s = self.env.s_to_pic(new_s)
 				r = self.env.make_reward(s, self.actions[a])
@@ -43,3 +40,5 @@ class Evaluation():
 		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
 		f.write(str(learning_episode+1) + "," + str(learning_total_step) + "," + str(episode_reward) + "," + str(steps+1) + "\n")
 		f.close()
+
+
