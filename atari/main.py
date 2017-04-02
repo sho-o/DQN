@@ -145,7 +145,9 @@ def make_directries(comment, dirs):
 			os.makedirs("result/{}/".format(comment) + d)
 
 def make_log(comment, episode, episode_reward, episode_average_value, epsilon, steps, total_step, run_time):
-	f = open("result/{}/log/log.txt".format(comment), "a")
+	f = open("result/{}/log/log.csv".format(comment), "a")
+	if episode == 0:
+		f.write("episode,reward,average_value,epsilon,episode_step,total_step,run_time\n")
 	f.write(str(episode+1) + "," + str(episode_reward) + "," + str(episode_average_value) + "," + str(epsilon) + ',' + str(steps+1) + ',' + str(total_step) + ',' + str(run_time) + "\n")
 	f.close()
 
