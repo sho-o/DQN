@@ -2,13 +2,14 @@ import numpy as np
 from sklearn.datasets import fetch_mldata
 
 class Environment():
-	def __init__(self, pic_kind):
+	def __init__(self, pic_kind, n):
+		self.n = n
 		self.walls = self.make_walls()
 		self.pic_kind = pic_kind
-		self.pics = self.make_20_pictures()
+		self.pics = self.make_n_pictures()
 		self.episode_pics = []
 
-	def make_20_pictures(self):
+	def make_n_pictures(self):
 		if self.pic_kind == "mnist":
 			mnist = fetch_mldata('MNIST original', data_home=".")
 			mnist.data   = mnist.data.astype(np.float32)
@@ -18,9 +19,9 @@ class Environment():
 			pics = [[] for i in range(10)]
 			for i in indices:
 				number = mnist.target[i]
-				if len(pics[number]) < 20:
+				if len(pics[number]) < self.n:
 					pics[number].append(mnist.data[i])
-					if len(pics[number]) == 20:
+					if len(pics[number]) == self.n:
 						finish_flag[number] += 1
 				if all(finish_flag):
 					break
@@ -54,7 +55,7 @@ class Environment():
 	def make_episode_pics(self):
 		self.episode_pics = []
 		for i in range(10):
-			index = np.random.choice(20)
+			index = np.random.choice(self.n)
 			self.episode_pics.append(self.pics[i][index].reshape(1,28,28))
 
 	def s_to_pic(self, s):

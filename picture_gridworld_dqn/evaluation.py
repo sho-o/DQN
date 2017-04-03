@@ -5,7 +5,7 @@ import copy
 
 class Evaluation():
 	def __init__(self, comment, pic_kind, s_init, actions, max_step):
-		self.env = environment.Environment(pic_kind)
+		self.env = environment.Environment(pic_kind, 1)
 		self.s_init = s_init
 		self.actions = actions
 		self.comment = comment

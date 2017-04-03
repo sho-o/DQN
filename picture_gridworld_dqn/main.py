@@ -38,6 +38,7 @@ parser.add_argument('--regularize', '-r', type=bool, default=False, help='regula
 parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regularization threshold')
 parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
 parser.add_argument('--rlp_iter', '-di', type=int, default=10, help='(batch) iteration for compute average loss and penalty (1batch=32)')
+parser.add_argument('--training_pics', '-tp', type=int, default=20, help='number of kinds of training pictures')
 args = parser.parse_args()
 
 def run(args):
@@ -69,6 +70,7 @@ def run(args):
 	threshold = args.threshold
 	rlp_iter = args.rlp_iter
 	penalty_weight = args.penalty_weight
+	training_pics = args.training_pics
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
@@ -76,7 +78,7 @@ def run(args):
 	make_directries(comment, ["network", "log", "evaluation", "loss_and_penalty"])
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
-	env = environment.Environment(pic_kind)
+	env = environment.Environment(pic_kind, training_pics)
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, regularize, threshold, penalty_weight)
