@@ -23,9 +23,10 @@ parser.add_argument('--fixed_q_update_freq', '-f', default=10**4, type=int, help
 parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int, help='save frequency')
 parser.add_argument('--eval_freq', '-ef', default=10**4, type=int, help='evaluatuin frequency')
 parser.add_argument('--print_freq', '-pf', default=1, type=int, help='print result frequency')
+parser.add_argument('--rlp_freq', '-rf', default=10**4, type=int, help='record loss and penalty frequency')
 parser.add_argument('--initial_exploration', '-i', default=5*10**4, type=int, help='number of initial exploration')
 parser.add_argument('--batch_size', '-b', type=int, default=32, help='learning minibatch size')
-parser.add_argument('--memory_size', '-m', type=int, default=10**6, help='replay memory size')
+parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='replay memory size')
 parser.add_argument('--input_slides', '-is', type=int, default=1, help='number of input slides')
 parser.add_argument('--net_type', '-n', type=str, default="full_connect", help='network type')
 parser.add_argument('--pic_size', '-ps', type=int, default=28, help='nput pic size')
@@ -34,9 +35,10 @@ parser.add_argument('--rms_eps', '-re', type=float, default=0.01, help='RMSProp_
 parser.add_argument('--rms_lr', '-lr', type=float, default=0.00025, help='RMSProp_learning_rate')
 parser.add_argument('--optimizer_type', '-o', type=str, default="rmsprop", help='type of optimizer')
 parser.add_argument('--start_point', '-sp', type=int, default=1, help='start point')
-parser.add_argument('--regularize', '-r', type=bool, default=False, help='regularize or not')
+parser.add_argument('--mode', '-m', type=str, default="default", help='default or regularize or mix')
 parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regularization threshold')
 parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
+parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
 parser.add_argument('--rlp_iter', '-di', type=int, default=10, help='(batch) iteration for compute average loss and penalty (1batch=32)')
 parser.add_argument('--training_pics', '-tp', type=int, default=20, help='number of kinds of training pictures')
 args = parser.parse_args()
@@ -55,6 +57,7 @@ def run(args):
 	save_freq = args.save_freq
 	eval_freq = args.eval_freq
 	print_freq = args.print_freq
+	rlp_freq = args.rlp_freq
 	initial_exploration = args.initial_exploration
 	batch_size = args.batch_size
 	memory_size = args.memory_size
@@ -66,8 +69,9 @@ def run(args):
 	rms_lr = args.rms_lr
 	optimizer_type = args.optimizer_type
 	start_point = args.start_point
-	regularize = args.regularize
+	mode = args.mode
 	threshold = args.threshold
+	mix_rate = args.mix_rate
 	rlp_iter = args.rlp_iter
 	penalty_weight = args.penalty_weight
 	training_pics = args.training_pics
@@ -81,7 +85,7 @@ def run(args):
 	env = environment.Environment(pic_kind, training_pics)
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
-	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, regularize, threshold, penalty_weight)
+	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
 	eva = evaluation.Evaluation(comment, pic_kind, s_init, actions, max_step)
 	rlp = loss_penalty_log.RLP_Log(comment, rlp_iter)
 	total_step = 0
@@ -111,9 +115,10 @@ def run(args):
 			if total_step > initial_exploration:
 				if total_step % q_update_freq == 0:
 					agt.q_update(total_step)
-				if total_step % fixed_q_update_freq == 0:
+				if total_step % rlp_freq == 0:
 					print "----------------------- record loss and penalty ------------------------------"
 					rlp(episode, total_step, agt)
+				if total_step % fixed_q_update_freq == 0:
 					print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
 				if total_step % save_freq == 0:

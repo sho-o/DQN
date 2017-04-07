@@ -5,7 +5,7 @@ import chainer.functions as F
 import network
 
 class Agent():
-	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, regularize, threshold, penalty_weight):
+	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate):
 		self.exp_policy = exp_policy
 		self.net_type = net_type
 		self.gpu = gpu
@@ -37,9 +37,10 @@ class Agent():
 		if self.optimizer_type == "adam":
 			self.optimizer = optimizers.Adam()
 		self.optimizer.setup(self.q)
-		self.regularize = regularize
+		self.mode = mode
 		self.threshold = threshold
 		self.penalty_weight = penalty_weight
+		self.mix_rate = mix_rate
 
 	def policy(self, s, eva=False):
 		if self.net_type == "full_connect":
@@ -120,10 +121,14 @@ class Agent():
 		new_s = Variable(new_s)
 		q_value = self.q(s)
 		q_value_data = q_value.data
-		if self.regularize == False:
-			tg_q_value = self.fixed_q(new_s)
-		if self.regularize == True:
+
+		if self.mode == "regularize":
 			tg_q_value = self.q(new_s)
+		elif self.mode == "target_mix":
+			tg_q_value = (1.0-self.mix_rate) * self.q(new_s) + self.mix_rate * self.fixed_q(new_s)
+		elif self.model == "default":
+			tg_q_value = self.fixed_q(new_s)
+
 		tg_q_value_data = tg_q_value.data
 
 		#cpu
@@ -155,7 +160,7 @@ class Agent():
 		zero = Variable(zero)
 		loss = F.mean_squared_error(td_clip, zero)
 
-		if self.regularize == True or rlp == True:
+		if self.mode == "regularize" or rlp == True:
 			if self.gpu >= 0:
 				q_value_data = cuda.to_gpu(q_value_data)
 			penalty = F.mean_squared_error(self.fixed_q(s), q_value_data)
@@ -167,6 +172,3 @@ class Agent():
 				loss = loss + self.penalty_weight * penalty
 
 		return loss
-
-
-
