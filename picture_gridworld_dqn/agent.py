@@ -59,7 +59,7 @@ class Agent():
 			q_max = np.amax(q)
 
 			if eva == True:
-				epsilon = 0
+				epsilon = 0.05
 			else:
 				epsilon = self.epsilon
 
@@ -126,7 +126,7 @@ class Agent():
 			tg_q_value = self.q(new_s)
 		elif self.mode == "target_mix":
 			tg_q_value = (1.0-self.mix_rate) * self.q(new_s) + self.mix_rate * self.fixed_q(new_s)
-		elif self.model == "default":
+		elif self.mode == "default":
 			tg_q_value = self.fixed_q(new_s)
 
 		tg_q_value_data = tg_q_value.data
