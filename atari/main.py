@@ -8,6 +8,7 @@ import os
 import sys
 from matplotlib import pylab as plt
 import gym
+import loss_penalty_log
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='Pong-v0', type=str, help='game name')
@@ -25,7 +26,7 @@ parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int, help='save 
 parser.add_argument('--print_freq', '-pf', default=1, type=int, help='print result frequency')
 parser.add_argument('--initial_exploration', '-i', default=5*10**4, type=int, help='number of initial exploration')
 parser.add_argument('--batch_size', '-b', type=int, default=32, help='learning minibatch size')
-parser.add_argument('--memory_size', '-m', type=int, default=10**6, help='replay memory size')
+parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='replay memory size')
 parser.add_argument('--input_slides', '-is', type=int, default=4, help='number of input slides')
 parser.add_argument('--net_type', '-n', type=str, default="convolution", help='network type')
 parser.add_argument('--pic_size', '-ps', type=int, default=84, help='nput pic size')
@@ -35,6 +36,12 @@ parser.add_argument('--rms_lr', '-lr', type=float, default=0.00025, help='RMSPro
 parser.add_argument('--optimizer_type', '-o', type=str, default="rmsprop", help='type of optimizer')
 parser.add_argument('--skip_mode', '-sm', type=str, default="deterministic", help='skip deterministic or stochastic')
 parser.add_argument('--skip_size', '-ss', type=int, default=4, help='skip size')
+parser.add_argument('--mode', '-m', type=str, default="default", help='default or regularize or mix')
+parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regularization threshold')
+parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
+parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
+parser.add_argument('--rlp_iter', '-di', type=int, default=10, help='(batch) iteration for compute average loss and penalty (1batch=32)')
+parser.add_argument('--rlp_freq', '-rf', default=10**4, type=int, help='record loss and penalty frequency')
 args = parser.parse_args()
 
 def run(args):
@@ -63,16 +70,23 @@ def run(args):
 	optimizer_type = args.optimizer_type
 	skip_mode = args.skip_mode
 	skip_size = args.skip_size
+	mode = args.mode
+	threshold = args.threshold
+	mix_rate = args.mix_rate
+	rlp_iter = args.rlp_iter
+	penalty_weight = args.penalty_weight
+	rlp_freq = args.rlp_freq
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
 	total_step = 0
-	make_directries(comment, ["network", "log"])
+	make_directries(comment, ["network", "log", "evaluation", "loss_and_penalty"])
 	num_of_actions = 4
 
 	pre = preprocess.Preprocess()
-	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type)
+	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
 	env = gym.make(name)
+	rlp = loss_penalty_log.RLP_Log(comment, rlp_iter)
 	run_start = time.time()
 
 	for episode in range(max_episode):
@@ -118,6 +132,9 @@ def run(args):
 			if total_step > initial_exploration:
 				if total_step % q_update_freq == 0:
 					agt.q_update(total_step)
+				if total_step % rlp_freq == 0:
+					print "----------------------- record loss and penalty ------------------------------"
+					rlp(episode, total_step, agt)
 				if total_step % fixed_q_update_freq == 0:
 					print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
