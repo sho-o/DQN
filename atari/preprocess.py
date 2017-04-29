@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.datasets import fetch_mldata
 import scipy.misc as spm
 
 class Preprocess():

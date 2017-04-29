@@ -28,8 +28,8 @@ class Agent():
 							"new_s":np.zeros((self.memory_size, self.input_slides, self.size, self.size), dtype=np.uint8),
 							"done":np.zeros((self.memory_size), dtype=np.bool)}
 		if self.gpu >= 0:
-			self.q.to_gpu(self.gpu)
-			self.fixed_q.to_gpu(self.gpu)
+			self.q.to_gpu()
+			self.fixed_q.to_gpu()
 		if self.optimizer_type == "rmsprop":
 			self.optimizer = optimizers.RMSpropGraves(lr=rms_lr, alpha=0.95, momentum=0.95, eps=rms_eps)
 		if self.optimizer_type == "sgd":
@@ -48,7 +48,7 @@ class Agent():
 		if self.net_type == "convolution":
 			s = np.asarray(s.reshape(1, self.input_slides, self.size, self.size), dtype=np.float32)
 		if self.gpu >= 0:
-			s = cuda.to_gpu(s, device=self.gpu)
+			s = cuda.to_gpu(s)
 		s = Variable(s)
 
 		if self.exp_policy == "epsilon_greedy":
@@ -115,8 +115,8 @@ class Agent():
 
 		#gpu
 		if self.gpu >= 0:
-			s = cuda.to_gpu(s, device=self.gpu)
-			new_s = cuda.to_gpu(new_s, device=self.gpu)
+			s = cuda.to_gpu(s)
+			new_s = cuda.to_gpu(new_s)
 		s = Variable(s)
 		new_s = Variable(new_s)
 		q_value = self.q(s)
@@ -147,7 +147,7 @@ class Agent():
 
 		#gpu
 		if self.gpu >= 0:
-			target = cuda.to_gpu(target, device=self.gpu)
+			target = cuda.to_gpu(target)
 		td = Variable(target) - q_value
 
 		#td_clip(keeping variable history)
@@ -156,7 +156,7 @@ class Agent():
 
 		zero = np.zeros((self.batch_size, self.num_of_actions), dtype=np.float32)
 		if self.gpu >= 0:
-			zero = cuda.to_gpu(zero, device=self.gpu)
+			zero = cuda.to_gpu(zero)
 		zero = Variable(zero)
 		loss = F.mean_squared_error(td_clip, zero)
 
