@@ -10,6 +10,7 @@ from matplotlib import pylab as plt
 import gym
 import ppaquette_gym_doom
 import multiprocessing
+import loss_penalty_log
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='DoomDefendCenter-v0', type=str, help='game name')
@@ -35,6 +36,12 @@ parser.add_argument('--discount', '-d', type=float, default=0.99, help='discount
 parser.add_argument('--rms_eps', '-re', type=float, default=0.01, help='RMSProp_epsilon')
 parser.add_argument('--rms_lr', '-lr', type=float, default=0.00025, help='RMSProp_learning_rate')
 parser.add_argument('--optimizer_type', '-o', type=str, default="rmsprop", help='type of optimizer')
+parser.add_argument('--mode', '-m', type=str, default="default", help='default or regularize or mix')
+parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regularization threshold')
+parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
+parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
+parser.add_argument('--rlp_iter', '-di', type=int, default=10, help='(batch) iteration for compute average loss and penalty (1batch=32)')
+parser.add_argument('--rlp_freq', '-rf', default=10**4, type=int, help='record loss and penalty frequency')
 args = parser.parse_args()
 
 def run(args):
@@ -61,18 +68,25 @@ def run(args):
 	rms_eps = args.rms_eps
 	rms_lr = args.rms_lr
 	optimizer_type = args.optimizer_type
+	mode = args.mode
+	threshold = args.threshold
+	mix_rate = args.mix_rate
+	rlp_iter = args.rlp_iter
+	penalty_weight = args.penalty_weight
+	rlp_freq = args.rlp_freq
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
-	if gpu >= 0:
-		cuda.get_device(gpu).use()
+	#if gpu >= 0:
+		#cuda.get_device(gpu).use()
 	total_step = 0
 	make_directries(comment, ["network", "log"])
 	num_of_actions = 4
 
 	pre = preprocess.Preprocess()
-	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type)
+	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
 	env = gym.make('ppaquette/{}'.format(name))
 	multiprocessing_lock = multiprocessing.Lock()
 	env.configure(lock=multiprocessing_lock)
+	rlp = loss_penalty_log.RLP_Log(comment, rlp_iter)
 	run_start = time.time()
 
 	for episode in range(max_episode):
@@ -89,6 +103,7 @@ def run(args):
 		for steps in range(max_step):
 			if render == True:
 				env.render()
+
 			a, value = agt.policy(s)
 			action = pre.action_convert(a)
 			obs, r, done, info = env.step(action)
@@ -106,6 +121,9 @@ def run(args):
 			if total_step > initial_exploration:
 				if total_step % q_update_freq == 0:
 					agt.q_update(total_step)
+				if total_step % rlp_freq == 0:
+					print "----------------------- record loss and penalty ------------------------------"
+					rlp(episode, total_step, agt)
 				if total_step % fixed_q_update_freq == 0:
 					print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
