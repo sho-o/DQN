@@ -28,7 +28,7 @@ parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int, help='save 
 parser.add_argument('--print_freq', '-pf', default=1, type=int, help='print result frequency')
 parser.add_argument('--initial_exploration', '-i', default=5*10**4, type=int, help='number of initial exploration')
 parser.add_argument('--batch_size', '-b', type=int, default=32, help='learning minibatch size')
-parser.add_argument('--memory_size', '-m', type=int, default=10**6, help='replay memory size')
+parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='replay memory size')
 parser.add_argument('--input_slides', '-is', type=int, default=4, help='number of input slides')
 parser.add_argument('--net_type', '-n', type=str, default="convolution", help='network type')
 parser.add_argument('--pic_size', '-ps', type=int, default=84, help='nput pic size')
@@ -78,7 +78,7 @@ def run(args):
 	#if gpu >= 0:
 		#cuda.get_device(gpu).use()
 	total_step = 0
-	make_directries(comment, ["network", "log"])
+	make_directries(comment, ["network", "log", "evaluation", "loss_and_penalty"])
 	num_of_actions = 4
 
 	pre = preprocess.Preprocess()
