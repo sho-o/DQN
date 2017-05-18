@@ -104,7 +104,6 @@ def run(args):
 			break
 
 		for steps in range(max_step):
-			print steps
 			if render == True:
 				env.render()
 
