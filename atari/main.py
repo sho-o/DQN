@@ -9,7 +9,7 @@ import sys
 from matplotlib import pylab as plt
 import gym
 import loss_loger
-import pickle
+import cPickle as pickle
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='Pong-v0', type=str, help='game name')

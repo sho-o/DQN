@@ -11,7 +11,7 @@ import gym
 import ppaquette_gym_doom
 import multiprocessing
 import loss_loger
-import pickle
+import cPickle as pickle
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='DoomDefendCenter-v0', type=str, help='game name')
