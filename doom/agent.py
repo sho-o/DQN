@@ -108,7 +108,7 @@ class Agent():
 			done_batch[i] = self.replay_memory["done"][index[i]]
 		return s_batch, a_batch, r_batch, new_s_batch, done_batch
 
-	def compute_loss(self, s, a, r, new_s, done, rlp=False):
+	def compute_loss(self, s, a, r, new_s, done, loss_log=False):
 		if self.net_type == "full_connect":
 			s = s.reshape(self.batch_size, self.input_slides*self.size*self.size)
 			new_s = new_s.reshape(self.batch_size, self.input_slides*self.size*self.size)
@@ -160,12 +160,12 @@ class Agent():
 		zero = Variable(zero)
 		loss = F.mean_squared_error(td_clip, zero)
 
-		if self.mode == "regularize" or rlp == True:
+		if self.mode == "regularize" or loss_log == True:
 			if self.gpu >= 0:
 				q_value_data = cuda.to_gpu(q_value_data)
-			penalty = F.mean_squared_error(self.fixed_q(s), q_value_data)
+			penalty = F.mean_squared_error(q_value, self.fixed_q(s))
 
-			if rlp == True:
+			if loss_log == True:
 				return loss.data, penalty.data
 
 			if penalty.data > self.threshold:
