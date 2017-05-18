@@ -124,7 +124,7 @@ def run(args):
 			if total_step > initial_exploration:
 				if total_step % q_update_freq == 0:
 					agt.q_update(total_step)
-				if (episde+1) % loss_log_freq == 0:
+				if (episode+1) % loss_log_freq == 0:
 					loss_log(episode, steps, total_step, agt)
 				if total_step % fixed_q_update_freq == 0:
 					print "----------------------- fixed Q update ------------------------------"
