@@ -99,7 +99,7 @@ def run(args):
 		s[3] = pre.one(obs)
 
 		if total_step >= finish_step:
-			with open('result/{}/replay_memory/memory_{}.pickle'.format(comment, total_step), 'wb') as f:
+			with open('result/{}/replay_memory/memory_{}.pickle'.format(comment, total_step), 'wb', protocol=2) as f:
 				pickle.dump(agt.replay_memory, f)
 			break
 
