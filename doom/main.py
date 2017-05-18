@@ -73,7 +73,7 @@ def run(args):
 	threshold = args.threshold
 	mix_rate = args.mix_rate
 	loss_log_iter = args.loss_log_iter
-	loss_weight = args.loss_weight
+	penalty_weight = args.penalty_weight
 	loss_log_freq = args.loss_log_freq
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 	#if gpu >= 0:
@@ -83,7 +83,7 @@ def run(args):
 	num_of_actions = 4
 
 	pre = preprocess.Preprocess()
-	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, loss_weight, mix_rate)
+	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
 	env = gym.make('ppaquette/{}'.format(name))
 	multiprocessing_lock = multiprocessing.Lock()
 	env.configure(lock=multiprocessing_lock)
