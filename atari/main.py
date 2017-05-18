@@ -8,7 +8,8 @@ import os
 import sys
 from matplotlib import pylab as plt
 import gym
-import loss_penalty_log
+import loss_loger
+import pickle
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='Pong-v0', type=str, help='game name')
@@ -19,7 +20,7 @@ parser.add_argument('--exp_policy', '-p', default="epsilon_greedy", type=str, he
 parser.add_argument('--epsilon_decrease_end', '-ee', default=10**6, type=int, help='the step number of the end of epsilon decrease')
 parser.add_argument('--max_episode', '-e', default=10**7, type=int, help='number of episode to learn')
 parser.add_argument('--max_step', '-s', default=10000, type=int, help='max steps per episode')
-parser.add_argument('--finish_step', '-fs', default=5*10**7, type=int, help='end of the learning')
+parser.add_argument('--finish_step', '-fs', default=2*10**7, type=int, help='end of the learning')
 parser.add_argument('--q_update_freq', '-q', default=4, type=int, help='q update freaquency')
 parser.add_argument('--fixed_q_update_freq', '-f', default=10**4, type=int, help='fixed q update freaquency')
 parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int, help='save frequency')
@@ -40,8 +41,8 @@ parser.add_argument('--mode', '-m', type=str, default="default", help='default o
 parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regularization threshold')
 parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
 parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
-parser.add_argument('--rlp_iter', '-di', type=int, default=10, help='(batch) iteration for compute average loss and penalty (1batch=32)')
-parser.add_argument('--rlp_freq', '-rf', default=10**4, type=int, help='record loss and penalty frequency')
+parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration for compute average loss and penalty (1batch=32)')
+parser.add_argument('--loss_log_freq', '-lf', default=500, type=int, help='record loss frequency per episode')
 args = parser.parse_args()
 
 def run(args):
@@ -73,20 +74,20 @@ def run(args):
 	mode = args.mode
 	threshold = args.threshold
 	mix_rate = args.mix_rate
-	rlp_iter = args.rlp_iter
+	loss_log_iter = args.loss_log_iter
 	penalty_weight = args.penalty_weight
-	rlp_freq = args.rlp_freq
+	loss_log_freq = args.loss_log_freq
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 	#if gpu >= 0:
 		#cuda.get_device(gpu).use()
 	total_step = 0
-	make_directries(comment, ["network", "log", "evaluation", "loss_and_penalty"])
+	make_directries(comment, ["network", "log", "evaluation", "loss", "replay_memory"])
 	num_of_actions = 4
 
 	pre = preprocess.Preprocess()
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
 	env = gym.make(name)
-	rlp = loss_penalty_log.RLP_Log(comment, rlp_iter)
+	loss_log = loss_loger.Loss_Log(comment, loss_log_iter)
 	run_start = time.time()
 
 	for episode in range(max_episode):
@@ -98,9 +99,12 @@ def run(args):
 		s[3] = pre.one(obs)
 
 		if total_step >= finish_step:
+			with open('result/{}/replay_memory/memory_{}.pickle'.format(comment, total_step), 'wb') as f:
+				pickle.dump(agt.replay_memory, f)
 			break
 
 		for steps in range(max_step):
+			print steps
 			if render == True:
 				env.render()
 
@@ -132,15 +136,14 @@ def run(args):
 			if total_step > initial_exploration:
 				if total_step % q_update_freq == 0:
 					agt.q_update(total_step)
-				if total_step % rlp_freq == 0:
-					print "----------------------- record loss and penalty ------------------------------"
-					rlp(episode, total_step, agt)
+				if (episode+1) % loss_log_freq == 0:
+					loss_log(episode, steps, total_step, agt)
 				if total_step % fixed_q_update_freq == 0:
 					print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
 				if total_step % save_freq == 0:
 					print "----------------------- save the_model ------------------------------"
-					serializers.save_npz('result/{}/network/q.net'.format(comment), agt.q)
+					serializers.save_npz('result/{}/network/q_{}.net'.format(comment, total_step), agt.q)
 				agt.epsilon = max(0.1, agt.epsilon - epsilon_decrease_wide)
 
 			#log, print_result
