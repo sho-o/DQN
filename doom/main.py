@@ -99,7 +99,7 @@ def run(args):
 		s[3] = pre.one(obs)
 
 		if total_step >= finish_step:
-			memory_save(comment, total_step, agt)
+			memory_save(comment, total_step, agt, gpu)
 			break
 
 		for steps in range(max_step):
@@ -158,10 +158,13 @@ def make_log(comment, episode, episode_reward, episode_average_value, epsilon, s
 	f.write(str(episode+1) + "," + str(episode_reward) + "," + str(episode_average_value) + "," + str(epsilon) + ',' + str(steps+1) + ',' + str(total_step) + ',' + str(run_time) + "\n")
 	f.close()
 
-def memory_save(comment, total_step, agt):
+def memory_save(comment, total_step, agt, gpu):
 	mem_kinds = ["s", "a", "r", "new_s", "done"]
 	for k in mem_kinds:
-		np.save('result/{}/replay_memory/{}_{}.npz'.format(comment, k, total_step), agt.replay_memory[k][:total_step])
+		if gpu >= 0:
+			np.save('/disk/waikiki/ohnishi-s/{}_{}_{}.npz'.format(comment, k, total_step), agt.replay_memory[k][:total_step])
+		else:
+			np.save('result/{}/replay_memory/{}_{}.npz'.format(comment, k, total_step), agt.replay_memory[k][:total_step])
 
 def print_result(episode, steps, episode_reward, episode_time, epsilon, total_step, run_time):
 	print("-------------------Episode {} finished after {} steps-------------------".format(episode+1, steps+1))
