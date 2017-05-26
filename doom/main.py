@@ -78,8 +78,8 @@ def run(args):
 	penalty_weight = args.penalty_weight
 	loss_log_freq = args.loss_log_freq
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
-	#if gpu >= 0:
-		#cuda.get_device(gpu).use()
+	if gpu >= 0:
+		cuda.get_device(gpu).use()
 	total_step = 0
 	make_directries(comment, ["network", "log", "evaluation", "loss", "replay_memory"])
 	num_of_actions = 4

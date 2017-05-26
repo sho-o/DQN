@@ -6,8 +6,10 @@ import argparse
 import time
 import os
 import sys
+from matplotlib import pylab as plt
 import evaluation
-import loss_penalty_log
+import loss_loger
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
@@ -17,13 +19,12 @@ parser.add_argument('--exp_policy', '-p', default="epsilon_greedy", type=str, he
 parser.add_argument('--epsilon_decrease_end', '-ee', default=10**6, type=int, help='the step number of the end of epsilon decrease')
 parser.add_argument('--max_episode', '-e', default=10**7, type=int, help='number of episode to learn')
 parser.add_argument('--max_step', '-s', default=1000, type=int, help='max steps per episode')
-parser.add_argument('--finish_step', '-fs', default=5*10**7, type=int, help='end of the learning')
+parser.add_argument('--finish_step', '-fs', default=3*10**6, type=int, help='end of the learning')
 parser.add_argument('--q_update_freq', '-q', default=4, type=int, help='q update freaquency')
 parser.add_argument('--fixed_q_update_freq', '-f', default=10**4, type=int, help='fixed q update frequency')
 parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int, help='save frequency')
 parser.add_argument('--eval_freq', '-ef', default=10**4, type=int, help='evaluatuin frequency')
 parser.add_argument('--print_freq', '-pf', default=1, type=int, help='print result frequency')
-parser.add_argument('--rlp_freq', '-rf', default=10**4, type=int, help='record loss and penalty frequency')
 parser.add_argument('--initial_exploration', '-i', default=5*10**4, type=int, help='number of initial exploration')
 parser.add_argument('--batch_size', '-b', type=int, default=32, help='learning minibatch size')
 parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='replay memory size')
@@ -39,8 +40,9 @@ parser.add_argument('--mode', '-m', type=str, default="default", help='default o
 parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regularization threshold')
 parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
 parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
-parser.add_argument('--rlp_iter', '-di', type=int, default=10, help='(batch) iteration for compute average loss and penalty (1batch=32)')
 parser.add_argument('--training_pics', '-tp', type=int, default=20, help='number of kinds of training pictures')
+parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
+parser.add_argument('--loss_log_freq', '-lf', default=5000, type=int, help='record loss frequency per episode')
 args = parser.parse_args()
 
 def run(args):
@@ -57,7 +59,6 @@ def run(args):
 	save_freq = args.save_freq
 	eval_freq = args.eval_freq
 	print_freq = args.print_freq
-	rlp_freq = args.rlp_freq
 	initial_exploration = args.initial_exploration
 	batch_size = args.batch_size
 	memory_size = args.memory_size
@@ -72,14 +73,15 @@ def run(args):
 	mode = args.mode
 	threshold = args.threshold
 	mix_rate = args.mix_rate
-	rlp_iter = args.rlp_iter
 	penalty_weight = args.penalty_weight
 	training_pics = args.training_pics
+	loss_log_iter = args.loss_log_iter
+	loss_log_freq = args.loss_log_freq
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
 	run_start = time.time()
-	make_directries(comment, ["network", "log", "evaluation", "loss_and_penalty"])
+	make_directries(comment, ["network", "log", "evaluation", "loss"])
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
 	env = environment.Environment(pic_kind, training_pics)
@@ -87,7 +89,7 @@ def run(args):
 	num_of_actions = len(actions)
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
 	eva = evaluation.Evaluation(comment, pic_kind, s_init, actions, max_step)
-	rlp = loss_penalty_log.RLP_Log(comment, rlp_iter)
+	loss_log = loss_loger.Loss_Log(comment, loss_log_iter)
 	total_step = 0
 	
 	for episode in range(max_episode):
@@ -115,15 +117,14 @@ def run(args):
 			if total_step > initial_exploration:
 				if total_step % q_update_freq == 0:
 					agt.q_update(total_step)
-				if total_step % rlp_freq == 0:
-					print "----------------------- record loss and penalty ------------------------------"
-					rlp(episode, total_step, agt)
+				if (episode+1) % loss_log_freq == 0:
+					loss_log(episode, steps, total_step, agt)
 				if total_step % fixed_q_update_freq == 0:
 					print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
-				if total_step % save_freq == 0:
-					print "----------------------- save the_model ------------------------------"
-					serializers.save_npz('result/{}/network/q.net'.format(comment), agt.q)
+				#if total_step % save_freq == 0:
+					#print "----------------------- save the_model ------------------------------"
+					#serializers.save_npz('result/{}/network/q_{}.net'.format(comment, total_step), agt.q)
 				if total_step % eval_freq == 0:
 					print "----------------------- evaluate the_model ------------------------------"
 					eva(agt, episode, total_step)
