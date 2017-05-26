@@ -6,6 +6,8 @@ import argparse
 import time
 import os
 import sys
+import matplotlib as mpl
+mpl.use('Agg')
 from matplotlib import pylab as plt
 import evaluation
 import loss_loger
