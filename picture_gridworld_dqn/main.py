@@ -31,7 +31,7 @@ parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='repla
 parser.add_argument('--input_slides', '-is', type=int, default=1, help='number of input slides')
 parser.add_argument('--net_type', '-n', type=str, default="full_connect", help='network type')
 parser.add_argument('--pic_size', '-ps', type=int, default=28, help='nput pic size')
-parser.add_argument('--discount', '-d', type=float, default=0.99, help='discount factor')
+parser.add_argument('--discount', '-d', type=float, default=0.9, help='discount factor')
 parser.add_argument('--rms_eps', '-re', type=float, default=0.01, help='RMSProp_epsilon')
 parser.add_argument('--rms_lr', '-lr', type=float, default=0.00025, help='RMSProp_learning_rate')
 parser.add_argument('--optimizer_type', '-o', type=str, default="rmsprop", help='type of optimizer')
