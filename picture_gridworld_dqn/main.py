@@ -9,6 +9,7 @@ import sys
 from matplotlib import pylab as plt
 import evaluation
 import loss_loger
+import pandas
 
 
 parser = argparse.ArgumentParser()
@@ -25,6 +26,7 @@ parser.add_argument('--fixed_q_update_freq', '-f', default=10**4, type=int, help
 parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int, help='save frequency')
 parser.add_argument('--eval_freq', '-ef', default=10**4, type=int, help='evaluatuin frequency')
 parser.add_argument('--print_freq', '-pf', default=1, type=int, help='print result frequency')
+parser.add_argument('--graph_freq', '-gf', default=10**5, type=int, help='make graph frequency')
 parser.add_argument('--initial_exploration', '-i', default=5*10**4, type=int, help='number of initial exploration')
 parser.add_argument('--batch_size', '-b', type=int, default=32, help='learning minibatch size')
 parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='replay memory size')
@@ -59,6 +61,7 @@ def run(args):
 	save_freq = args.save_freq
 	eval_freq = args.eval_freq
 	print_freq = args.print_freq
+	graph_freq = args.graph_freq
 	initial_exploration = args.initial_exploration
 	batch_size = args.batch_size
 	memory_size = args.memory_size
@@ -126,8 +129,11 @@ def run(args):
 					#print "----------------------- save the_model ------------------------------"
 					#serializers.save_npz('result/{}/network/q_{}.net'.format(comment, total_step), agt.q)
 				if total_step % eval_freq == 0:
-					print "----------------------- evaluate the_model ------------------------------"
+					print "----------------------- evaluate the model ------------------------------"
 					eva(agt, episode, total_step)
+				if total_step % graph_freq == 0:
+					print "----------------------- make graph ------------------------------"
+					make_graph(comment)
 				agt.epsilon = max(0.1, agt.epsilon - epsilon_decrease_wide)
 
 			#log, print_result
@@ -155,6 +161,22 @@ def make_log(comment, episode, episode_reward, episode_average_value, epsilon, s
 		f.write("episode,reward,average_value,epsilon,episode_step,total_step,run_time\n")
 	f.write(str(episode+1) + "," + str(episode_reward) + "," + str(episode_average_value) + "," + str(epsilon) + ',' + str(steps+1) + ',' + str(total_step) + ',' + str(run_time) + "\n")
 	f.close()
+
+def make_graph(comment):
+	df = pandas.read_csv("result/{}/evaluation/evaluation.csv".format(comment))
+	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
+	reward_mean = np.array(df.loc[:, "reward_mean"].values, dtype=np.float)
+	reward_std = np.array(df.loc[:, "reward_std"].values, dtype=np.float)
+	step_mean = np.array(df.loc[:, "step_mean"].values, dtype=np.float)
+	step_std = np.array(df.loc[:, "step_std"].values, dtype=np.float)
+	plt.figure()
+	plt.plot(total_step, reward_mean, color="red")
+	plt.fill_between(total_step, reward_mean+reward_std, reward_mean-reward_std, facecolor='red', alpha=0.3)
+	plt.savefig("result/{}/evaluation/reward.png".format(comment))
+	plt.figure()
+	plt.plot(total_step, step_mean, color="blue")
+	plt.fill_between(total_step, step_mean+step_std, step_mean-step_std, facecolor='blue', alpha=0.3)
+	plt.savefig("result/{}/evaluation/step.png".format(comment))
 
 def print_result(episode, steps, episode_reward, episode_time, epsilon, total_step, run_time):
 	print("-------------------Episode {} finished after {} steps-------------------".format(episode+1, steps+1))
