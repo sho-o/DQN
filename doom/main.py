@@ -27,6 +27,7 @@ parser.add_argument('--q_update_freq', '-q', default=4, type=int, help='q update
 parser.add_argument('--fixed_q_update_freq', '-f', default=10**4, type=int, help='fixed q update freaquency')
 parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int, help='save frequency')
 parser.add_argument('--print_freq', '-pf', default=1, type=int, help='print result frequency')
+parser.add_argument('--memory_save_freq', '-mf', default=5*10**6, type=int, help='memory save frequency')
 parser.add_argument('--initial_exploration', '-i', default=5*10**4, type=int, help='number of initial exploration')
 parser.add_argument('--batch_size', '-b', type=int, default=32, help='learning minibatch size')
 parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='replay memory size')
@@ -59,6 +60,7 @@ def run(args):
 	fixed_q_update_freq = args.fixed_q_update_freq
 	save_freq = args.save_freq
 	print_freq = args.print_freq
+	memory_save_freq = args.memory_save_freq
 	initial_exploration = args.initial_exploration
 	batch_size = args.batch_size
 	memory_size = args.memory_size
@@ -131,6 +133,9 @@ def run(args):
 				if total_step % save_freq == 0:
 					print "----------------------- save the_model ------------------------------"
 					serializers.save_npz('result/{}/network/q_{}.net'.format(comment, total_step), agt.q)
+				if total_step % memory_save_freq == 0:
+					print "----------------------- saving replay memory ------------------------------"
+					memory_save(comment, total_step, agt, gpu)
 				agt.epsilon = max(0.1, agt.epsilon - epsilon_decrease_wide)
 
 			#log, print_result
@@ -162,9 +167,9 @@ def memory_save(comment, total_step, agt, gpu):
 	mem_kinds = ["s", "a", "r", "new_s", "done"]
 	for k in mem_kinds:
 		if gpu >= 0:
-			np.save('/disk/waikiki/ohnishi-s/{}_{}_{}.npz'.format(comment, k, total_step), agt.replay_memory[k][:total_step])
+			np.save('/disk/waikiki/ohnishi-s/{}_{}.npz'.format(comment, k), agt.replay_memory[k][:total_step])
 		else:
-			np.save('result/{}/replay_memory/{}_{}.npz'.format(comment, k, total_step), agt.replay_memory[k][:total_step])
+			np.save('result/{}/replay_memory/{}.npz'.format(comment, k), agt.replay_memory[k][:total_step])
 
 def print_result(episode, steps, episode_reward, episode_time, epsilon, total_step, run_time):
 	print("-------------------Episode {} finished after {} steps-------------------".format(episode+1, steps+1))
