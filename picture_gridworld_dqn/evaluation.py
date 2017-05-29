@@ -34,8 +34,9 @@ class Evaluation():
 				#prepare next s
 				s = new_s[:]
 				pic_s = np.array(pic_new_s)
-				reward_list.append(episode_reward)
-				step_num_list.append(steps+1)
+
+			reward_list.append(episode_reward)
+			step_num_list.append(steps+1)
 
 		reward_array = np.array(reward_list)
 		step_array = np.array(step_num_list)
