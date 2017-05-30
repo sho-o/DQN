@@ -4,7 +4,7 @@ import copy
 
 class Evaluation():
 	def __init__(self, comment, pic_kind, s_init, actions, max_step):
-		self.env = environment.Environment(pic_kind, 1)
+		self.env = environment.Environment(pic_kind, 4000)
 		self.s_init = s_init
 		self.actions = actions
 		self.comment = comment
@@ -16,7 +16,7 @@ class Evaluation():
 	def __call__(self, agt, learning_episode, learning_total_step):
 		reward_list = []
 		step_num_list = []
-		for episode in range(30):
+		for episode in range(100):
 			self.env.make_episode_pics()
 			episode_reward = 0
 			s = self.s_init
