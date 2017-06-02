@@ -47,6 +47,7 @@ parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix
 parser.add_argument('--training_pics', '-tp', type=int, default=20, help='number of kinds of training pictures')
 parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
 parser.add_argument('--loss_log_freq', '-lf', default=5000, type=int, help='record loss frequency per episode')
+parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 args = parser.parse_args()
 
 def run(args):
@@ -82,6 +83,7 @@ def run(args):
 	training_pics = args.training_pics
 	loss_log_iter = args.loss_log_iter
 	loss_log_freq = args.loss_log_freq
+	rolling_mean_width = args.rolling_mean_width
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
@@ -105,6 +107,7 @@ def run(args):
 		s = s_init
 		pic_s = env.s_to_pic(s)
 		if total_step >= finish_step:
+			make_training_graph(comment, rolling_mean_width)
 			break
 
 		for steps in range(max_step):
@@ -179,6 +182,20 @@ def make_graph(comment):
 	plt.plot(total_step, step_mean, color="blue")
 	#plt.fill_between(total_step, step_mean+step_std, step_mean-step_std, facecolor='blue', alpha=0.3)
 	plt.savefig("result/{}/evaluation/step.png".format(comment))
+
+def make_training_graph(comment, rolling_mean_width):
+	df = pd.read_csv("result/{}/log/log.csv".format(comment))
+	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
+	reward = np.array(df.loc[:, "reward"].values, dtype=np.float)
+	reward = pd.Series(reward).rolling(window=rolling_mean_width).mean()
+	episode_step = np.array(df.loc[:, "episode_step"].values, dtype=np.float)
+	episode_step = pd.Series(episode_step).rolling(window=rolling_mean_width).mean()
+	plt.figure()
+	plt.plot(total_step, reward, color="red")
+	plt.savefig("result/{}/log/training_reward.png".format(comment))
+	plt.figure()
+	plt.plot(total_step, episode_step, color="blue")
+	plt.savefig("result/{}/log/training_step.png".format(comment))
 
 def print_result(episode, steps, episode_reward, episode_time, epsilon, total_step, run_time):
 	print("-------------------Episode {} finished after {} steps-------------------".format(episode+1, steps+1))
