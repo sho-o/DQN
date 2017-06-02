@@ -167,7 +167,7 @@ def memory_save(comment, total_step, agt, gpu):
 	mem_kinds = ["s", "a", "r", "new_s", "done"]
 	for k in mem_kinds:
 		if gpu >= 0:
-			np.save('/disk/waikiki/ohnishi-s/{}_{}.npz'.format(comment, k), agt.replay_memory[k][:total_step])
+			np.save('/disk/userdata/ohnishi-s/{}_{}.npz'.format(comment, k), agt.replay_memory[k][:total_step])
 		else:
 			np.save('result/{}/replay_memory/{}.npz'.format(comment, k), agt.replay_memory[k][:total_step])
 
