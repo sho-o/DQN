@@ -11,7 +11,7 @@ mpl.use('Agg')
 from matplotlib import pylab as plt
 import evaluation
 import loss_loger
-import pandas
+import pandas as pd
 
 
 parser = argparse.ArgumentParser()
@@ -168,7 +168,7 @@ def make_log(comment, episode, episode_reward, episode_average_value, epsilon, s
 	f.close()
 
 def make_graph(comment):
-	df = pandas.read_csv("result/{}/evaluation/evaluation.csv".format(comment))
+	df = pd.read_csv("result/{}/evaluation/evaluation.csv".format(comment))
 	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
 	reward_mean = np.array(df.loc[:, "reward_mean"].values, dtype=np.float)
 	#reward_std = np.array(df.loc[:, "reward_std"].values, dtype=np.float)
