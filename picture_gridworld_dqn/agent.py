@@ -17,10 +17,12 @@ class Agent():
 		self.discount = discount
 		self.optimizer_type = optimizer_type
 		self.epsilon = 1.0
-		if self.net_type == "full_connect":
+		if self.net_type == "full":
 			self.q = network.Q(self.num_of_actions)
-		if self.net_type == "convolution":
+		if self.net_type == "conv":
 			self.q = network.Q_conv(self.num_of_actions)
+		if self.net_type == "DQN":
+			self.q = network.DQN(self.num_of_actions)
 		self.fixed_q = copy.deepcopy(self.q)
 		self.replay_memory = {"s":np.zeros((self.memory_size, self.input_slides, self.size, self.size), dtype=np.uint8),
 							"a":np.zeros(self.memory_size, dtype=np.uint8),
@@ -43,9 +45,9 @@ class Agent():
 		self.mix_rate = mix_rate
 
 	def policy(self, s, eva=False):
-		if self.net_type == "full_connect":
+		if self.net_type == "full":
 			s = np.asarray(s.reshape(1, self.input_slides*self.size*self.size), dtype=np.float32)
-		if self.net_type == "convolution":
+		if self.net_type == "conv":
 			s = np.asarray(s.reshape(1, self.input_slides, self.size, self.size), dtype=np.float32)
 		if self.gpu >= 0:
 			s = cuda.to_gpu(s)
@@ -109,7 +111,7 @@ class Agent():
 		return s_batch, a_batch, r_batch, new_s_batch, done_batch
 
 	def compute_loss(self, s, a, r, new_s, done, loss_log=False):
-		if self.net_type == "full_connect":
+		if self.net_type == "full":
 			s = s.reshape(self.batch_size, self.input_slides*self.size*self.size)
 			new_s = new_s.reshape(self.batch_size, self.input_slides*self.size*self.size)
 

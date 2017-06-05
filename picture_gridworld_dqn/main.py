@@ -33,7 +33,7 @@ parser.add_argument('--initial_exploration', '-i', default=5*10**4, type=int, he
 parser.add_argument('--batch_size', '-b', type=int, default=32, help='learning minibatch size')
 parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='replay memory size')
 parser.add_argument('--input_slides', '-is', type=int, default=1, help='number of input slides')
-parser.add_argument('--net_type', '-n', type=str, default="full_connect", help='network type')
+parser.add_argument('--net_type', '-n', type=str, default="full", help='network type (full, conv, DQN)')
 parser.add_argument('--pic_size', '-ps', type=int, default=28, help='nput pic size')
 parser.add_argument('--discount', '-d', type=float, default=0.99, help='discount factor')
 parser.add_argument('--rms_eps', '-re', type=float, default=0.01, help='RMSProp_epsilon')
