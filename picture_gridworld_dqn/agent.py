@@ -47,7 +47,7 @@ class Agent():
 	def policy(self, s, eva=False):
 		if self.net_type == "full":
 			s = np.asarray(s.reshape(1, self.input_slides*self.size*self.size), dtype=np.float32)
-		else:
+		if self.net_type == "conv" or self.net_type == "DQN":
 			s = np.asarray(s.reshape(1, self.input_slides, self.size, self.size), dtype=np.float32)
 		if self.gpu >= 0:
 			s = cuda.to_gpu(s)
