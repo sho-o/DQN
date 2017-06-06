@@ -18,7 +18,7 @@ import pandas as pd
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', '-N', default='DoomDefendCenter-v0', type=str, help='game name')
-parser.add_argument('--render', '-r', type=bool, default=False, help='rendor or not')
+parser.add_argument('--render', '-rd', type=bool, default=False, help='rendor or not')
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
 parser.add_argument('--gpu', '-g', default= -1, type=int, help='GPU ID (negative value indicates CPU)')
 parser.add_argument('--exp_policy', '-p', default="epsilon_greedy", type=str, help='explorlation policy')
