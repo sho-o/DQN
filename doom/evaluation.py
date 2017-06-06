@@ -17,14 +17,14 @@ class Evaluation():
 		step_num_list = []
 		for episode in range(100):
 			episode_reward = 0
-			obs = env.reset()
+			obs = self.env.reset()
 			s = np.zeros((4, 84, 84), dtype=np.uint8)
 			s[3] = pre.one(obs)
 
 			for steps in range(self.max_step):
 				a, _ = agt.policy(s, eva=True)
 				action = pre.action_convert(a)
-				obs, r, done, info = env.step(action)
+				obs, r, done, info = self.env.step(action)
 				obs_processed = pre.one(obs)
 
 				new_s = np.asanyarray([s[1], s[2], s[3], obs_processed], dtype=np.uint8)
