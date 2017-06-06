@@ -204,7 +204,7 @@ def memory_save(comment, total_step, agt, kng):
 
 def make_test_graph(comment):
 	df = pd.read_csv("result/{}/evaluation/evaluation.csv".format(comment))
-	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
+	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
 	reward_mean = np.array(df.loc[:, "reward_mean"].values, dtype=np.float)
 	reward_std = np.array(df.loc[:, "reward_std"].values, dtype=np.float)
 	#step_mean = np.array(df.loc[:, "step_mean"].values, dtype=np.float)
@@ -220,8 +220,8 @@ def make_test_graph(comment):
 
 def make_training_graph(comment, rolling_mean_width):
 	df = pd.read_csv("result/{}/log/log.csv".format(comment))
-	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
-	reward = np.array(df.loc[:, "reward"].values, dtype=np.float)
+	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
+	reward = np.array(df.loc[:, "reward"].values, dtype=np.int)
 	reward = pd.Series(reward).rolling(window=rolling_mean_width).mean()
 	#episode_step = np.array(df.loc[:, "episode_step"].values, dtype=np.float)
 	#episode_step = pd.Series(episode_step).rolling(window=rolling_mean_width).mean()
@@ -234,7 +234,7 @@ def make_training_graph(comment, rolling_mean_width):
 
 def make_loss_graph(comment, fixed_q_update_counter):
 	df = pd.read_csv("result/{}/loss/{}_loss.csv".format(comment, fixed_q_update_counter))
-	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
+	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
 	loss_mean = np.array(df.loc[:, "loss_mean"].values, dtype=np.float)
 	loss_std = np.array(df.loc[:, "loss_std"].values, dtype=np.float)
 	penalty_mean = np.array(df.loc[:, "penalty_mean"].values, dtype=np.float)
