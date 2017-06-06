@@ -1,10 +1,11 @@
 import numpy as np
-import environment
 import copy
+import gym
+import ppaquette_gym_doom
 
 class Evaluation():
 	def __init__(self, name, comment, max_step):
-		self.env = env = gym.make('ppaquette/{}'.format(name))
+		self.env = gym.make('ppaquette/{}'.format(name))
 		self.comment = comment
 		self.max_step = max_step
 		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
