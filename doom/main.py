@@ -197,7 +197,7 @@ def make_log(comment, episode, episode_reward, episode_average_value, epsilon, s
 def memory_save(comment, total_step, agt, kng):
 	mem_kinds = ["s", "a", "r", "new_s", "done"]
 	for k in mem_kinds:
-		if kng:
+		if kng == True:
 			np.save('/disk/userdata/ohnishi-s/{}_{}.npz'.format(comment, k), agt.replay_memory[k][:total_step])
 		else:
 			np.save('result/{}/replay_memory/{}.npz'.format(comment, k), agt.replay_memory[k][:total_step])
