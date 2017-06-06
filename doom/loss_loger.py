@@ -1,9 +1,11 @@
 import numpy as np
+from chainer import cuda
 
 class Loss_Log():
-	def __init__(self, comment, iteration):
+	def __init__(self, comment, iteration, gpu):
 		self.comment = comment
 		self.iteration = iteration
+		self.gpu = gpu
 
 	def __call__(self, fixed_q_update_counter, total_step, agt):
 		loss_list = []
@@ -13,6 +15,10 @@ class Loss_Log():
 			loss, penalty = agt.compute_loss(s, a, r, new_s, done, loss_log=True)
 			loss_list.append(loss)
 			penalty_list.append(penalty)
+
+		if self.gpu >= 0:
+			loss_list = cuda.to_cpu(loss_list)
+			penalty_list = cuda.to_cpu(penalty_list)
 
 		loss_array = np.array(loss_list)
 		penalty_array = np.array(penalty_list)

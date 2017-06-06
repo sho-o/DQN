@@ -100,7 +100,7 @@ def run(args):
 	#multiprocessing_lock = multiprocessing.Lock()
 	#env.configure(lock=multiprocessing_lock)
 	eva = evaluation.Evaluation(name, comment, max_step)
-	loss_log = loss_loger.Loss_Log(comment, loss_log_iter)
+	loss_log = loss_loger.Loss_Log(comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
 	run_start = time.time()
