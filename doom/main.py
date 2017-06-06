@@ -50,7 +50,7 @@ parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix
 parser.add_argument('--loss_log_iter', '-li', type=int, default=50, help='(batch) iteration  compute average loss and penalty (1batch=32)')
 parser.add_argument('--loss_log_freq', '-lf', default=10, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
-parser.add_argument('--kng', '-k', default=True, type=bool, help='Use kng or not')
+parser.add_argument('--kng', '-k', default=1, type=int, help='Use kng or not')
 args = parser.parse_args()
 
 def run(args):
@@ -197,7 +197,7 @@ def make_log(comment, episode, episode_reward, episode_average_value, epsilon, s
 def memory_save(comment, total_step, agt, kng):
 	mem_kinds = ["s", "a", "r", "new_s", "done"]
 	for k in mem_kinds:
-		if kng:
+		if kng == 1:
 			path = '/disk/userdata/ohnishi-s/{}_{}.npz'.format(comment, k)
 		else:
 			path = 'result/{}/replay_memory/{}.npz'.format(comment, k)
