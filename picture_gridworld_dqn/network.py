@@ -34,7 +34,7 @@ class Q_conv(Chain):
 class DQN(Chain):
 	def __init__(self, num_of_actions):
 		super(DQN, self).__init__(
-			l1=L.Convolution2D(1, 32, ksize=8, stride=4),
+			l1=L.Convolution2D(1, 32, ksize=8, stride=1), #original is stride=4
 			l2=L.Convolution2D(32, 64, ksize=4, stride=2),
 			l3=L.Convolution2D(64, 64, ksize=3, stride=1),
 			l4=L.Linear(3136, 512),
