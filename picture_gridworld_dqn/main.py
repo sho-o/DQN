@@ -45,8 +45,8 @@ parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regul
 parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
 parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
 parser.add_argument('--training_pics', '-tp', type=int, default=20, help='number of kinds of training pictures')
-parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
-parser.add_argument('--loss_log_freq', '-lf', default=5000, type=int, help='record loss frequency per episode')
+parser.add_argument('--loss_log_iter', '-li', type=int, default=50, help='(batch) iteration  compute average loss and penalty (1batch=32)')
+parser.add_argument('--loss_log_freq', '-lf', default=10, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 args = parser.parse_args()
 
@@ -98,7 +98,8 @@ def run(args):
 	eva = evaluation.Evaluation(comment, pic_kind, s_init, actions, max_step)
 	loss_log = loss_loger.Loss_Log(comment, loss_log_iter)
 	total_step = 0
-	
+	fixed_q_update_counter = 0
+
 	for episode in range(max_episode):
 		episode_start = time.time()
 		env.make_episode_pics()
@@ -107,7 +108,6 @@ def run(args):
 		s = s_init
 		pic_s = env.s_to_pic(s)
 		if total_step >= finish_step:
-			make_training_graph(comment, rolling_mean_width)
 			break
 
 		for steps in range(max_step):
@@ -125,11 +125,17 @@ def run(args):
 			if total_step > initial_exploration:
 				if total_step % q_update_freq == 0:
 					agt.q_update(total_step)
-				if (episode+1) % loss_log_freq == 0:
-					loss_log(episode, steps, total_step, agt)
+				if fixed_q_update_counter % loss_log_freq == 0 and fixed_q_update_counter > 0:
+					loss_log(fixed_q_update_counter, total_step, agt)
 				if total_step % fixed_q_update_freq == 0:
 					print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
+					fixed_q_update_counter += 1
+					if fixed_q_update_counter % loss_log_freq == 0:
+						make_loss_log_file(comment, fixed_q_update_counter)
+					if fixed_q_update_counter % loss_log_freq == 1 and fixed_q_update_counter > 1:
+							print "----------------------- make_loss_graph ------------------------------"
+							make_loss_graph(comment, fixed_q_update_counter-1)
 				#if total_step % save_freq == 0:
 					#print "----------------------- save the_model ------------------------------"
 					#serializers.save_npz('result/{}/network/q_{}.net'.format(comment, total_step), agt.q)
@@ -138,7 +144,8 @@ def run(args):
 					eva(agt, episode, total_step)
 				if total_step % graph_freq == 0:
 					print "----------------------- make graph ------------------------------"
-					make_graph(comment)
+					make_test_graph(comment)
+					make_training_graph(comment, rolling_mean_width)
 				agt.epsilon = max(0.1, agt.epsilon - epsilon_decrease_wide)
 
 			#log, print_result
@@ -160,6 +167,11 @@ def make_directries(comment, dirs):
 		if not os.path.exists("result/{}/".format(comment) + d):
 			os.makedirs("result/{}/".format(comment) + d)
 
+def make_loss_log_file(comment, fixed_q_update_counter):
+	f = open("result/{}/loss/{}_loss.csv".format(comment, fixed_q_update_counter), "a")
+	f.write("fixed_q_update_counter,total_step,loss_mean,loss_std,penalty_mean,penalty_std\n")
+	f.close()
+
 def make_log(comment, episode, episode_reward, episode_average_value, epsilon, steps, total_step, run_time):
 	f = open("result/{}/log/log.csv".format(comment), "a")
 	if episode == 0:
@@ -167,7 +179,7 @@ def make_log(comment, episode, episode_reward, episode_average_value, epsilon, s
 	f.write(str(episode+1) + "," + str(episode_reward) + "," + str(episode_average_value) + "," + str(epsilon) + ',' + str(steps+1) + ',' + str(total_step) + ',' + str(run_time) + "\n")
 	f.close()
 
-def make_graph(comment):
+def make_test_graph(comment):
 	df = pd.read_csv("result/{}/evaluation/evaluation.csv".format(comment))
 	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
 	reward_mean = np.array(df.loc[:, "reward_mean"].values, dtype=np.float)
@@ -196,6 +208,22 @@ def make_training_graph(comment, rolling_mean_width):
 	plt.figure()
 	plt.plot(total_step, episode_step, color="blue")
 	plt.savefig("result/{}/log/training_step.png".format(comment))
+
+def make_loss_graph(comment, fixed_q_update_counter):
+	df = pd.read_csv("result/{}/loss/{}_loss.csv".format(comment, fixed_q_update_counter))
+	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
+	loss_mean = np.array(df.loc[:, "loss_mean"].values, dtype=np.float)
+	loss_std = np.array(df.loc[:, "loss_std"].values, dtype=np.float)
+	penalty_mean = np.array(df.loc[:, "penalty_mean"].values, dtype=np.float)
+	penalty_std = np.array(df.loc[:, "penalty_std"].values, dtype=np.float)
+	plt.figure()
+	plt.plot(total_step, loss_mean, color="red")
+	plt.fill_between(total_step, loss_mean+loss_std, loss_mean-loss_std, facecolor='red', alpha=0.3)
+	plt.savefig("result/{}/loss/{}_loss.png".format(comment, fixed_q_update_counter))
+	plt.figure()
+	plt.plot(total_step, penalty_mean, color="blue")
+	plt.fill_between(total_step, penalty_mean+penalty_std, penalty_mean-penalty_std, facecolor='blue', alpha=0.3)
+	plt.savefig("result/{}/loss/{}_penalty.png".format(comment, fixed_q_update_counter))
 
 def print_result(episode, steps, episode_reward, episode_time, epsilon, total_step, run_time):
 	print("-------------------Episode {} finished after {} steps-------------------".format(episode+1, steps+1))
