@@ -16,12 +16,13 @@ class Loss_Log():
 			loss_list.append(loss)
 			penalty_list.append(penalty)
 
-		if self.gpu >= 0:
-			loss_list = cuda.to_cpu(loss_list)
-			penalty_list = cuda.to_cpu(penalty_list)
-
 		loss_array = np.array(loss_list)
 		penalty_array = np.array(penalty_list)
+
+		if self.gpu >= 0:
+			loss_array = cuda.to_cpu(loss_array)
+			penalty_array = cuda.to_cpu(penalty_array)
+
 		loss_mean = np.average(loss_array)
 		loss_std = np.std(loss_array)
 		penalty_mean = np.average(penalty_array)
