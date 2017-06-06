@@ -96,7 +96,7 @@ def run(args):
 	num_of_actions = len(actions)
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
 	eva = evaluation.Evaluation(comment, pic_kind, s_init, actions, max_step)
-	loss_log = loss_loger.Loss_Log(comment, loss_log_iter)
+	loss_log = loss_loger.Loss_Log(comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
 
@@ -107,7 +107,7 @@ def run(args):
 		episode_value = 0
 		s = s_init
 		pic_s = env.s_to_pic(s)
-		if total_step >= finish_step:
+		if total_step > finish_step:
 			break
 
 		for steps in range(max_step):
@@ -197,10 +197,10 @@ def make_test_graph(comment):
 
 def make_training_graph(comment, rolling_mean_width):
 	df = pd.read_csv("result/{}/log/log.csv".format(comment))
-	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
-	reward = np.array(df.loc[:, "reward"].values, dtype=np.float)
+	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
+	reward = np.array(df.loc[:, "reward"].values, dtype=np.int)
 	reward = pd.Series(reward).rolling(window=rolling_mean_width).mean()
-	episode_step = np.array(df.loc[:, "episode_step"].values, dtype=np.float)
+	episode_step = np.array(df.loc[:, "episode_step"].values, dtype=np.int)
 	episode_step = pd.Series(episode_step).rolling(window=rolling_mean_width).mean()
 	plt.figure()
 	plt.plot(total_step, reward, color="red")
@@ -211,7 +211,7 @@ def make_training_graph(comment, rolling_mean_width):
 
 def make_loss_graph(comment, fixed_q_update_counter):
 	df = pd.read_csv("result/{}/loss/{}_loss.csv".format(comment, fixed_q_update_counter))
-	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
+	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
 	loss_mean = np.array(df.loc[:, "loss_mean"].values, dtype=np.float)
 	loss_std = np.array(df.loc[:, "loss_std"].values, dtype=np.float)
 	penalty_mean = np.array(df.loc[:, "penalty_mean"].values, dtype=np.float)
