@@ -97,8 +97,8 @@ def run(args):
 	pre = preprocess.Preprocess()
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
 	env = gym.make('ppaquette/{}'.format(name))
-	multiprocessing_lock = multiprocessing.Lock()
-	env.configure(lock=multiprocessing_lock)
+	#multiprocessing_lock = multiprocessing.Lock()
+	#env.configure(lock=multiprocessing_lock)
 	eva = evaluation.Evaluation(name, comment, max_step)
 	loss_log = loss_loger.Loss_Log(comment, loss_log_iter)
 	total_step = 0
