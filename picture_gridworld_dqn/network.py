@@ -25,8 +25,8 @@ class Q_conv(Chain):
 			l2=L.Linear(None, num_of_actions))
 
 	def __call__(self, x):
-		h_1 = h = F.max_pooling_2d(F.relu(self.conv1(x / 255.0)), 2)
-		h_2 = h = F.max_pooling_2d(F.relu(self.conv2(h_1)), 2)
+		h_1 = F.max_pooling_2d(F.relu(self.conv1(x / 255.0)), 2)
+		h_2 = F.max_pooling_2d(F.relu(self.conv2(h_1)), 2)
 		h_3 = F.relu(self.l1(h_2))
 		o = self.l2(h_3)
 		return o
