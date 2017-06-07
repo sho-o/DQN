@@ -45,8 +45,8 @@ parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regul
 parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
 parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
 parser.add_argument('--training_pics', '-tp', type=int, default=20, help='number of kinds of training pictures')
-parser.add_argument('--loss_log_iter', '-li', type=int, default=50, help='(batch) iteration  compute average loss and penalty (1batch=32)')
-parser.add_argument('--loss_log_freq', '-lf', default=10, type=int, help='record loss frequency per fixed q upddate')
+parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
+parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 args = parser.parse_args()
 
