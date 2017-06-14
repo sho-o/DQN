@@ -75,10 +75,8 @@ class Environment():
 			return 0
 		if self.walls[s[0]][s[1]][a]=="r":
 			if reward_clip == True:
-				print "True"
 				return -1.0
 			else:
-				print "False"
 				return -0.01
 		if self.walls[s[0]][s[1]][a]=="g":
 			return 1.0
