@@ -3,12 +3,13 @@ import environment
 import copy
 
 class Evaluation():
-	def __init__(self, comment, pic_kind, s_init, actions, max_step):
+	def __init__(self, comment, pic_kind, s_init, actions, max_step, reward_clip):
 		self.env = environment.Environment(pic_kind, 4000)
 		self.s_init = s_init
 		self.actions = actions
 		self.comment = comment
 		self.max_step = max_step
+		self.reward_clip = reward_clip
 		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
 		f.write("episode,total_step,reward_mean,reward_std,step_mean,step_std\n")
 		f.close()
@@ -26,7 +27,7 @@ class Evaluation():
 				a, _ = agt.policy(pic_s, eva=True)
 				new_s = self.env.generate_next_s(s, self.actions[a])
 				pic_new_s = self.env.s_to_pic(new_s)
-				r = self.env.make_reward(s, self.actions[a])
+				r = self.env.make_reward(s, self.actions[a], self.reward_clip)
 				done = self.env.judge_finish(new_s)
 				episode_reward += r
 				if done:

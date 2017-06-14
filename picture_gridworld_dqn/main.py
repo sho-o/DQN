@@ -48,6 +48,7 @@ parser.add_argument('--training_pics', '-tp', type=int, default=20, help='number
 parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
 parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
+parser.add_argument('--reward_clip', '-rc', default=False, type=bool, help='clip the reward or not')
 args = parser.parse_args()
 
 def run(args):
@@ -84,6 +85,7 @@ def run(args):
 	loss_log_iter = args.loss_log_iter
 	loss_log_freq = args.loss_log_freq
 	rolling_mean_width = args.rolling_mean_width
+	reward_clip = args.reward_clip
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
@@ -95,7 +97,7 @@ def run(args):
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
-	eva = evaluation.Evaluation(comment, pic_kind, s_init, actions, max_step)
+	eva = evaluation.Evaluation(comment, pic_kind, s_init, actions, max_step, reward_clip)
 	loss_log = loss_loger.Loss_Log(comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
@@ -114,7 +116,7 @@ def run(args):
 			a, value = agt.policy(pic_s)
 			new_s = env.generate_next_s(s, actions[a])
 			pic_new_s = env.s_to_pic(new_s)
-			r = env.make_reward(s, actions[a])
+			r = env.make_reward(s, actions[a], reward_clip)
 			done = env.judge_finish(new_s)
 			agt.store_experience(total_step, pic_s, a, r, pic_new_s, done)
 			episode_reward += r

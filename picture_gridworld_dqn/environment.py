@@ -70,13 +70,18 @@ class Environment():
 			if a == "left": return[s[0], s[1]-1]
 			if a == "right": return[s[0], s[1]+1]
 
-	def make_reward(self, s, a):
+	def make_reward(self, s, a, reward_clip):
 		if self.walls[s[0]][s[1]][a]=="p" or self.walls[s[0]][s[1]][a]=="y":
 			return 0
 		if self.walls[s[0]][s[1]][a]=="r":
-			return -0.01
+			if reward_clip == True:
+				print "True"
+				return -1.0
+			else:
+				print "False"
+				return -0.01
 		if self.walls[s[0]][s[1]][a]=="g":
-			return 1
+			return 1.0
 
 	def judge_finish(self, s):
 		return s==[1,1]
