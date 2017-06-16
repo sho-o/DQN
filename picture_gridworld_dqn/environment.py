@@ -1,31 +1,10 @@
 import numpy as np
-from sklearn.datasets import fetch_mldata
 
 class Environment():
-	def __init__(self, pic_kind, n):
-		self.n = n
+	def __init__(self, pics):
 		self.walls = self.make_walls()
-		self.pic_kind = pic_kind
-		self.pics = self.make_n_pictures()
+		self.pics = pics
 		self.episode_pics = []
-
-	def make_n_pictures(self):
-		if self.pic_kind == "mnist":
-			mnist = fetch_mldata('MNIST original', data_home=".")
-			mnist.data   = mnist.data.astype(np.float32)
-			mnist.target = mnist.target.astype(np.int32)
-			indices = list(np.random.permutation(70000))
-			finish_flag = [0 for i in range(10)]
-			pics = [[] for i in range(10)]
-			for i in indices:
-				number = mnist.target[i]
-				if len(pics[number]) < self.n:
-					pics[number].append(mnist.data[i])
-					if len(pics[number]) == self.n:
-						finish_flag[number] += 1
-				if all(finish_flag):
-					break
-		return np.array(pics)
 
 	def make_walls(self, col_size = 3, row_size = 3):
 		walls = np.array([[{"up":"y", "down":"y", "right":"y", "left":"y"} for c in range(col_size)] for r in range(row_size)])
@@ -55,7 +34,7 @@ class Environment():
 	def make_episode_pics(self):
 		self.episode_pics = []
 		for i in range(10):
-			index = np.random.choice(self.n)
+			index = np.random.choice(self.pics.shape[0])
 			self.episode_pics.append(self.pics[i][index].reshape(1,28,28))
 
 	def s_to_pic(self, s):

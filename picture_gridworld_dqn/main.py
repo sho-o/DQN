@@ -12,6 +12,7 @@ from matplotlib import pylab as plt
 import evaluation
 import loss_loger
 import pandas as pd
+from sklearn.datasets import fetch_mldata
 
 
 parser = argparse.ArgumentParser()
@@ -19,17 +20,17 @@ parser.add_argument('--comment', '-c', default='', type=str, help='comment to di
 parser.add_argument('--gpu', '-g', default= -1, type=int, help='GPU ID (negative value indicates CPU)')
 parser.add_argument('--pic_kind', '-k', default="mnist", type=str, help='kind of pictures')
 parser.add_argument('--exp_policy', '-p', default="epsilon_greedy", type=str, help='explorlation policy')
-parser.add_argument('--epsilon_decrease_end', '-ee', default=10**6, type=int, help='the step number of the end of epsilon decrease')
+parser.add_argument('--epsilon_decrease_end', '-ee', default=5*10**4, type=int, help='the step number of the end of epsilon decrease')
 parser.add_argument('--max_episode', '-e', default=10**7, type=int, help='number of episode to learn')
 parser.add_argument('--max_step', '-s', default=1000, type=int, help='max steps per episode')
-parser.add_argument('--finish_step', '-fs', default=3*10**6, type=int, help='end of the learning')
+parser.add_argument('--finish_step', '-fs', default=10**6, type=int, help='end of the learning')
 parser.add_argument('--q_update_freq', '-q', default=4, type=int, help='q update freaquency')
 parser.add_argument('--fixed_q_update_freq', '-f', default=10**4, type=int, help='fixed q update frequency')
 parser.add_argument('--save_freq', '-sf', default=5*10**4, type=int, help='save frequency')
 parser.add_argument('--eval_freq', '-ef', default=10**4, type=int, help='evaluatuin frequency')
 parser.add_argument('--print_freq', '-pf', default=1, type=int, help='print result frequency')
 parser.add_argument('--graph_freq', '-gf', default=10**5, type=int, help='make graph frequency')
-parser.add_argument('--initial_exploration', '-i', default=5*10**4, type=int, help='number of initial exploration')
+parser.add_argument('--initial_exploration', '-i', default=10**3, type=int, help='number of initial exploration')
 parser.add_argument('--batch_size', '-b', type=int, default=32, help='learning minibatch size')
 parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='replay memory size')
 parser.add_argument('--input_slides', '-is', type=int, default=1, help='number of input slides')
@@ -44,11 +45,13 @@ parser.add_argument('--mode', '-m', type=str, default="default", help='default o
 parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regularization threshold')
 parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
 parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
-parser.add_argument('--training_pics', '-tp', type=int, default=20, help='number of kinds of training pictures')
+parser.add_argument('--training_size', '-ts', type=int, default=2000, help='number of kinds of training pictures')
+parser.add_argument('--test_size', '-tes', type=int, default=2000, help='number of kinds of test pictures')
 parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
 parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 parser.add_argument('--reward_clip', '-rc', default=True, type=bool, help='clip the reward or not')
+parser.add_argument('--test_iter', '-ti', type=int, default=100, help='test iteration times')
 args = parser.parse_args()
 
 def run(args):
@@ -81,11 +84,13 @@ def run(args):
 	threshold = args.threshold
 	mix_rate = args.mix_rate
 	penalty_weight = args.penalty_weight
-	training_pics = args.training_pics
+	training_size = args.training_size
+	test_size = args.test_size
 	loss_log_iter = args.loss_log_iter
 	loss_log_freq = args.loss_log_freq
 	rolling_mean_width = args.rolling_mean_width
 	reward_clip = args.reward_clip
+	test_iter = args.test_iter
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
@@ -93,11 +98,14 @@ def run(args):
 	make_directries(comment, ["network", "log", "evaluation", "loss"])
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
-	env = environment.Environment(pic_kind, training_pics)
+	training_pics, test_pics = separate_data(pic_kind, training_size, test_size)
+	print training_pics.shape
+	print test_pics.shape
+	env = environment.Environment(training_pics)
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
-	eva = evaluation.Evaluation(comment, pic_kind, s_init, actions, max_step, reward_clip)
+	eva = evaluation.Evaluation(comment, test_pics, s_init, actions, max_step, reward_clip, test_iter)
 	loss_log = loss_loger.Loss_Log(comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
@@ -183,19 +191,27 @@ def make_log(comment, episode, episode_reward, episode_average_value, epsilon, s
 
 def make_test_graph(comment):
 	df = pd.read_csv("result/{}/evaluation/evaluation.csv".format(comment))
-	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.float)
+	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
 	reward_mean = np.array(df.loc[:, "reward_mean"].values, dtype=np.float)
+	success_times = np.array(df.loc[:, "success_times"].values, dtype=np.int)
+	success_step_mean = np.array(df.loc[:, "success_step_mean"].values, dtype=np.float)
 	#reward_std = np.array(df.loc[:, "reward_std"].values, dtype=np.float)
 	step_mean = np.array(df.loc[:, "step_mean"].values, dtype=np.float)
 	#step_std = np.array(df.loc[:, "step_std"].values, dtype=np.float)
 	plt.figure()
-	plt.plot(total_step, reward_mean, color="red")
+	plt.plot(total_step, reward_mean, color="r")
 	#plt.fill_between(total_step, reward_mean+reward_std, reward_mean-reward_std, facecolor='red', alpha=0.3)
 	plt.savefig("result/{}/evaluation/reward.png".format(comment))
 	plt.figure()
-	plt.plot(total_step, step_mean, color="blue")
+	plt.plot(total_step, step_mean, color="b")
 	#plt.fill_between(total_step, step_mean+step_std, step_mean-step_std, facecolor='blue', alpha=0.3)
 	plt.savefig("result/{}/evaluation/step.png".format(comment))
+	plt.figure()
+	plt.plot(total_step, success_times, color="g")
+	plt.savefig("result/{}/evaluation/success_times.png".format(comment))
+	plt.figure()
+	plt.plot(total_step, success_step_mean, color="c")
+	plt.savefig("result/{}/evaluation/success_step_mean.png".format(comment))
 
 def make_training_graph(comment, rolling_mean_width):
 	df = pd.read_csv("result/{}/log/log.csv".format(comment))
@@ -226,6 +242,25 @@ def make_loss_graph(comment, fixed_q_update_counter):
 	plt.plot(total_step, penalty_mean, color="blue")
 	plt.fill_between(total_step, penalty_mean+penalty_std, penalty_mean-penalty_std, facecolor='blue', alpha=0.3)
 	plt.savefig("result/{}/loss/{}_penalty.png".format(comment, fixed_q_update_counter))
+
+def separate_data(pic_kind, training_size, test_size):
+	if pic_kind == "mnist":
+		mnist = fetch_mldata('MNIST original', data_home=".")
+		mnist.data   = mnist.data.astype(np.float32)
+		mnist.target = mnist.target.astype(np.int32)
+		indices = list(np.random.permutation(70000))
+		finish_flag = [0 for i in range(10)]
+		pics = [[] for i in range(10)]
+		for i in indices:
+			number = mnist.target[i]
+			if len(pics[number]) < (training_size + test_size):
+				pics[number].append(mnist.data[i])
+				if len(pics[number]) == (training_size + test_size):
+					finish_flag[number] += 1
+			if all(finish_flag):
+				break
+		pics = np.array(pics)
+	return np.array(pics[:,0:training_size]), np.array(pics[:,training_size:(training_size+test_size)])
 
 def print_result(episode, steps, episode_reward, episode_time, epsilon, total_step, run_time):
 	print("-------------------Episode {} finished after {} steps-------------------".format(episode+1, steps+1))
