@@ -3,9 +3,9 @@ import environment
 import copy
 
 class Evaluation():
-	def __init__(self, directory_path, comment, test_pics, s_init, actions, max_step, reward_clip, test_iter):
+	def __init__(self, directory_path, comment, eval_pics, s_init, actions, max_step, reward_clip, test_iter):
 		self.directory_path = directory_path
-		self.env = environment.Environment(test_pics)
+		self.env = environment.Environment(eval_pics)
 		self.s_init = s_init
 		self.actions = actions
 		self.comment = comment

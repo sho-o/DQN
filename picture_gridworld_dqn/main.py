@@ -48,6 +48,7 @@ parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='re
 parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
 parser.add_argument('--training_size', '-ts', type=int, default=2000, help='number of kinds of training pictures')
 parser.add_argument('--test_size', '-tes', type=int, default=2000, help='number of kinds of test pictures')
+parser.add_argument('--test_with_all_data', '-ta', type=bool, help='use all data for test or not')
 parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
 parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
@@ -88,6 +89,7 @@ def run(args):
 	penalty_weight = args.penalty_weight
 	training_size = args.training_size
 	test_size = args.test_size
+	test_with_all_data = args.test_with_all_data
 	loss_log_iter = args.loss_log_iter
 	loss_log_freq = args.loss_log_freq
 	rolling_mean_width = args.rolling_mean_width
@@ -100,14 +102,18 @@ def run(args):
 	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss"])
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
-	training_pics, test_pics = separate_data(pic_kind, training_size, test_size)
-	print training_pics.shape
-	print test_pics.shape
+	training_pics, test_pics, all_pics = separate_data(pic_kind, training_size, test_size)
+	if test_with_all_data:
+		eval_pics = all_pics
+		print eval_pics.shape
+	else:
+		eval_pics = test_pics
+		print eval_pics.shape
 	env = environment.Environment(training_pics)
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
-	eva = evaluation.Evaluation(directory_path, comment, test_pics, s_init, actions, max_step, reward_clip, test_iter)
+	eva = evaluation.Evaluation(directory_path, comment, eval_pics, s_init, actions, max_step, reward_clip, test_iter)
 	loss_log = loss_loger.Loss_Log(directory_path, comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
@@ -193,13 +199,13 @@ def make_log(directory_path, comment, episode, episode_reward, episode_average_v
 
 def make_test_graph(directory_path, comment):
 	df = pd.read_csv("{}/{}/evaluation/evaluation.csv".format(directory_path, comment))
-	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
-	reward_mean = np.array(df.loc[:, "reward_mean"].values, dtype=np.float)
-	success_times = np.array(df.loc[:, "success_times"].values, dtype=np.int)
-	success_step_mean = np.array(df.loc[:, "success_step_mean"].values, dtype=np.float)
-	#reward_std = np.array(df.loc[:, "reward_std"].values, dtype=np.float)
-	step_mean = np.array(df.loc[:, "step_mean"].values, dtype=np.float)
-	#step_std = np.array(df.loc[:, "step_std"].values, dtype=np.float)
+	total_step = np.array(df.loc[:, "total_step"].values)
+	reward_mean = np.array(df.loc[:, "reward_mean"].values)
+	success_times = np.array(df.loc[:, "success_times"].values)
+	success_step_mean = np.array(df.loc[:, "success_step_mean"].values)
+	#reward_std = np.array(df.loc[:, "reward_std"].values)
+	step_mean = np.array(df.loc[:, "step_mean"].values)
+	#step_std = np.array(df.loc[:, "step_std"].values)
 	plt.figure()
 	plt.plot(total_step, reward_mean, color="r")
 	#plt.fill_between(total_step, reward_mean+reward_std, reward_mean-reward_std, facecolor='red', alpha=0.3)
@@ -217,10 +223,10 @@ def make_test_graph(directory_path, comment):
 
 def make_training_graph(directory_path, comment, rolling_mean_width):
 	df = pd.read_csv("{}/{}/log/log.csv".format(directory_path, comment))
-	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
-	reward = np.array(df.loc[:, "reward"].values, dtype=np.int)
+	total_step = np.array(df.loc[:, "total_step"].values)
+	reward = np.array(df.loc[:, "reward"].values)
 	reward = pd.Series(reward).rolling(window=rolling_mean_width).mean()
-	episode_step = np.array(df.loc[:, "episode_step"].values, dtype=np.int)
+	episode_step = np.array(df.loc[:, "episode_step"].values)
 	episode_step = pd.Series(episode_step).rolling(window=rolling_mean_width).mean()
 	plt.figure()
 	plt.plot(total_step, reward, color="red")
@@ -231,11 +237,11 @@ def make_training_graph(directory_path, comment, rolling_mean_width):
 
 def make_loss_graph(directory_path, comment, fixed_q_update_counter):
 	df = pd.read_csv("{}/{}/loss/{}_loss.csv".format(directory_path, comment, fixed_q_update_counter))
-	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
-	loss_mean = np.array(df.loc[:, "loss_mean"].values, dtype=np.float)
-	loss_std = np.array(df.loc[:, "loss_std"].values, dtype=np.float)
-	penalty_mean = np.array(df.loc[:, "penalty_mean"].values, dtype=np.float)
-	penalty_std = np.array(df.loc[:, "penalty_std"].values, dtype=np.float)
+	total_step = np.array(df.loc[:, "total_step"].values)
+	loss_mean = np.array(df.loc[:, "loss_mean"].values)
+	loss_std = np.array(df.loc[:, "loss_std"].values)
+	penalty_mean = np.array(df.loc[:, "penalty_mean"].values)
+	penalty_std = np.array(df.loc[:, "penalty_std"].values)
 	plt.figure()
 	plt.plot(total_step, loss_mean, color="red")
 	plt.fill_between(total_step, loss_mean+loss_std, loss_mean-loss_std, facecolor='red', alpha=0.3)
@@ -262,7 +268,7 @@ def separate_data(pic_kind, training_size, test_size):
 			if all(finish_flag):
 				break
 		pics = np.array(pics)
-	return np.array(pics[:,0:training_size]), np.array(pics[:,training_size:(training_size+test_size)])
+	return pics[:,0:training_size], pics[:,training_size:(training_size+test_size)], pics
 
 def print_result(episode, steps, episode_reward, episode_time, epsilon, total_step, run_time):
 	print("-------------------Episode {} finished after {} steps-------------------".format(episode+1, steps+1))
