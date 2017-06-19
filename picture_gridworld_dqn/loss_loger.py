@@ -2,7 +2,8 @@ import numpy as np
 from chainer import cuda
 
 class Loss_Log():
-	def __init__(self, comment, iteration, gpu):
+	def __init__(self, directory_path, comment, iteration, gpu):
+		self.directory_path = directory_path
 		self.comment = comment
 		self.iteration = iteration
 		self.gpu = gpu
@@ -25,9 +26,9 @@ class Loss_Log():
 		loss_std = np.std(loss_array)
 		penalty_mean = np.average(penalty_array)
 		penalty_std = np.std(penalty_array)
-		self.make_loss_log(self.comment, fixed_q_update_counter, total_step, loss_mean, loss_std, penalty_mean, penalty_std)
+		self.make_loss_log(self.directory_path, self.comment, fixed_q_update_counter, total_step, loss_mean, loss_std, penalty_mean, penalty_std)
 
-	def make_loss_log(self, comment, fixed_q_update_counter, total_step, loss_mean, loss_std, penalty_mean, penalty_std):
-		f = open("result/{}/loss/{}_loss.csv".format(self.comment, fixed_q_update_counter), "a")
+	def make_loss_log(self, directory_path, comment, fixed_q_update_counter, total_step, loss_mean, loss_std, penalty_mean, penalty_std):
+		f = open("{}/{}/loss/{}_loss.csv".format(directory_path, comment, fixed_q_update_counter), "a")
 		f.write(str(fixed_q_update_counter) + "," + str(total_step) + "," + str(loss_mean) + "," + str(loss_std) + "," + str(penalty_mean) + "," + str(penalty_std) + "\n")
 		f.close()

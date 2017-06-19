@@ -18,6 +18,7 @@ from sklearn.datasets import fetch_mldata
 parser = argparse.ArgumentParser()
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
 parser.add_argument('--gpu', '-g', default= -1, type=int, help='GPU ID (negative value indicates CPU)')
+parser.add_argument('--directory_path', '-dp', default="result", type=str, help='directory path')
 parser.add_argument('--pic_kind', '-k', default="mnist", type=str, help='kind of pictures')
 parser.add_argument('--exp_policy', '-p', default="epsilon_greedy", type=str, help='explorlation policy')
 parser.add_argument('--epsilon_decrease_end', '-ee', default=5*10**4, type=int, help='the step number of the end of epsilon decrease')
@@ -57,6 +58,7 @@ args = parser.parse_args()
 def run(args):
 	comment = args.comment
 	gpu = args.gpu
+	directory_path = args.directory_path
 	pic_kind = args.pic_kind
 	exp_policy = args.exp_policy
 	epsilon_decrease_end = args.epsilon_decrease_end
@@ -95,7 +97,7 @@ def run(args):
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
 	run_start = time.time()
-	make_directries(comment, ["network", "log", "evaluation", "loss"])
+	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss"])
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
 	training_pics, test_pics = separate_data(pic_kind, training_size, test_size)
@@ -105,8 +107,8 @@ def run(args):
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
-	eva = evaluation.Evaluation(comment, test_pics, s_init, actions, max_step, reward_clip, test_iter)
-	loss_log = loss_loger.Loss_Log(comment, loss_log_iter, gpu)
+	eva = evaluation.Evaluation(directory_path, comment, test_pics, s_init, actions, max_step, reward_clip, test_iter)
+	loss_log = loss_loger.Loss_Log(directory_path, comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
 
@@ -142,20 +144,20 @@ def run(args):
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
 					if fixed_q_update_counter % loss_log_freq == 0:
-						make_loss_log_file(comment, fixed_q_update_counter)
+						make_loss_log_file(directory_path, comment, fixed_q_update_counter)
 					if fixed_q_update_counter % loss_log_freq == 1 and fixed_q_update_counter > 1:
 							print "----------------------- make_loss_graph ------------------------------"
-							make_loss_graph(comment, fixed_q_update_counter-1)
+							make_loss_graph(directory_path, comment, fixed_q_update_counter-1)
 				#if total_step % save_freq == 0:
 					#print "----------------------- save the_model ------------------------------"
-					#serializers.save_npz('result/{}/network/q_{}.net'.format(comment, total_step), agt.q)
+					#serializers.save_npz('{}/{}/network/q_{}.net'.format(directory_path, comment, total_step), agt.q)
 				if total_step % eval_freq == 0:
 					print "----------------------- evaluate the model ------------------------------"
 					eva(agt, episode, total_step)
 				if total_step % graph_freq == 0:
 					print "----------------------- make graph ------------------------------"
-					make_test_graph(comment)
-					make_training_graph(comment, rolling_mean_width)
+					make_test_graph(directory_path, comment)
+					make_training_graph(directory_path, comment, rolling_mean_width)
 				agt.epsilon = max(0.1, agt.epsilon - epsilon_decrease_wide)
 
 			#log, print_result
@@ -163,7 +165,7 @@ def run(args):
 				run_time = time.time() - run_start
 				episode_time = time.time() - episode_start
 				episode_average_value = episode_value/steps
-				make_log(comment, episode, episode_reward, episode_average_value, agt.epsilon, steps, total_step, run_time)
+				make_log(directory_path, comment, episode, episode_reward, episode_average_value, agt.epsilon, steps, total_step, run_time)
 				if total_step % print_freq == 0:
 					print_result(episode, steps, episode_reward, episode_time, agt.epsilon, total_step, run_time)
 				break
@@ -172,25 +174,25 @@ def run(args):
 			s = new_s[:]
 			pic_s = np.array(pic_new_s)
 
-def make_directries(comment, dirs):
+def make_directries(directory_path, comment, dirs):
 	for d in dirs:
-		if not os.path.exists("result/{}/".format(comment) + d):
-			os.makedirs("result/{}/".format(comment) + d)
+		if not os.path.exists("{}/{}/".format(directory_path, comment) + d):
+			os.makedirs("{}/{}/".format(directory_path, comment) + d)
 
-def make_loss_log_file(comment, fixed_q_update_counter):
-	f = open("result/{}/loss/{}_loss.csv".format(comment, fixed_q_update_counter), "a")
+def make_loss_log_file(directory_path, comment, fixed_q_update_counter):
+	f = open("{}/{}/loss/{}_loss.csv".format(directory_path, comment, fixed_q_update_counter), "a")
 	f.write("fixed_q_update_counter,total_step,loss_mean,loss_std,penalty_mean,penalty_std\n")
 	f.close()
 
 def make_log(comment, episode, episode_reward, episode_average_value, epsilon, steps, total_step, run_time):
-	f = open("result/{}/log/log.csv".format(comment), "a")
+	f = open("{}/{}/log/log.csv".format(directory_path, comment), "a")
 	if episode == 0:
 		f.write("episode,reward,average_value,epsilon,episode_step,total_step,run_time\n")
 	f.write(str(episode+1) + "," + str(episode_reward) + "," + str(episode_average_value) + "," + str(epsilon) + ',' + str(steps+1) + ',' + str(total_step) + ',' + str(run_time) + "\n")
 	f.close()
 
-def make_test_graph(comment):
-	df = pd.read_csv("result/{}/evaluation/evaluation.csv".format(comment))
+def make_test_graph(directory_path, comment):
+	df = pd.read_csv("{}/{}/evaluation/evaluation.csv".format(directory_path, comment))
 	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
 	reward_mean = np.array(df.loc[:, "reward_mean"].values, dtype=np.float)
 	success_times = np.array(df.loc[:, "success_times"].values, dtype=np.int)
@@ -201,20 +203,20 @@ def make_test_graph(comment):
 	plt.figure()
 	plt.plot(total_step, reward_mean, color="r")
 	#plt.fill_between(total_step, reward_mean+reward_std, reward_mean-reward_std, facecolor='red', alpha=0.3)
-	plt.savefig("result/{}/evaluation/reward.png".format(comment))
+	plt.savefig("{}/{}/evaluation/reward.png".format(directory_path, comment))
 	plt.figure()
 	plt.plot(total_step, step_mean, color="b")
 	#plt.fill_between(total_step, step_mean+step_std, step_mean-step_std, facecolor='blue', alpha=0.3)
-	plt.savefig("result/{}/evaluation/step.png".format(comment))
+	plt.savefig("{}/{}/evaluation/step.png".format(directory_path, comment))
 	plt.figure()
 	plt.plot(total_step, success_times, color="g")
-	plt.savefig("result/{}/evaluation/success_times.png".format(comment))
+	plt.savefig("{}/{}/evaluation/success_times.png".format(directory_path, comment))
 	plt.figure()
 	plt.plot(total_step, success_step_mean, color="c")
-	plt.savefig("result/{}/evaluation/success_step_mean.png".format(comment))
+	plt.savefig("{}/{}/evaluation/success_step_mean.png".format(directory_path, comment))
 
-def make_training_graph(comment, rolling_mean_width):
-	df = pd.read_csv("result/{}/log/log.csv".format(comment))
+def make_training_graph(directory_path, comment, rolling_mean_width):
+	df = pd.read_csv("{}/{}/log/log.csv".format(directory_path, comment))
 	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
 	reward = np.array(df.loc[:, "reward"].values, dtype=np.int)
 	reward = pd.Series(reward).rolling(window=rolling_mean_width).mean()
@@ -222,13 +224,13 @@ def make_training_graph(comment, rolling_mean_width):
 	episode_step = pd.Series(episode_step).rolling(window=rolling_mean_width).mean()
 	plt.figure()
 	plt.plot(total_step, reward, color="red")
-	plt.savefig("result/{}/log/training_reward.png".format(comment))
+	plt.savefig("{}/{}/log/training_reward.png".format(directory_path, comment))
 	plt.figure()
 	plt.plot(total_step, episode_step, color="blue")
-	plt.savefig("result/{}/log/training_step.png".format(comment))
+	plt.savefig("{}/{}/log/training_step.png".format(directory_path, comment))
 
-def make_loss_graph(comment, fixed_q_update_counter):
-	df = pd.read_csv("result/{}/loss/{}_loss.csv".format(comment, fixed_q_update_counter))
+def make_loss_graph(directory_path, comment, fixed_q_update_counter):
+	df = pd.read_csv("{}/{}/loss/{}_loss.csv".format(directory_path, comment, fixed_q_update_counter))
 	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
 	loss_mean = np.array(df.loc[:, "loss_mean"].values, dtype=np.float)
 	loss_std = np.array(df.loc[:, "loss_std"].values, dtype=np.float)
@@ -237,11 +239,11 @@ def make_loss_graph(comment, fixed_q_update_counter):
 	plt.figure()
 	plt.plot(total_step, loss_mean, color="red")
 	plt.fill_between(total_step, loss_mean+loss_std, loss_mean-loss_std, facecolor='red', alpha=0.3)
-	plt.savefig("result/{}/loss/{}_loss.png".format(comment, fixed_q_update_counter))
+	plt.savefig("{}/{}/loss/{}_loss.png".format(directory_path, comment, fixed_q_update_counter))
 	plt.figure()
 	plt.plot(total_step, penalty_mean, color="blue")
 	plt.fill_between(total_step, penalty_mean+penalty_std, penalty_mean-penalty_std, facecolor='blue', alpha=0.3)
-	plt.savefig("result/{}/loss/{}_penalty.png".format(comment, fixed_q_update_counter))
+	plt.savefig("{}/{}/loss/{}_penalty.png".format(directory_path, comment, fixed_q_update_counter))
 
 def separate_data(pic_kind, training_size, test_size):
 	if pic_kind == "mnist":

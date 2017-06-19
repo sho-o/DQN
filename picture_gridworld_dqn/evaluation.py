@@ -3,7 +3,8 @@ import environment
 import copy
 
 class Evaluation():
-	def __init__(self, comment, test_pics, s_init, actions, max_step, reward_clip, test_iter):
+	def __init__(self, directory_path, comment, test_pics, s_init, actions, max_step, reward_clip, test_iter):
+		self.directory_path = directory_path
 		self.env = environment.Environment(test_pics)
 		self.s_init = s_init
 		self.actions = actions
@@ -11,7 +12,7 @@ class Evaluation():
 		self.max_step = max_step
 		self.reward_clip = reward_clip
 		self.test_iter = test_iter
-		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
+		f = open("{}/{}/evaluation/evaluation.csv".format(directory_path, comment), "a")
 		f.write("episode,total_step,reward_mean,reward_std,step_mean,step_std,success_times,success_step_mean\n")
 		f.close()
 
@@ -56,10 +57,10 @@ class Evaluation():
 			success_step_mean = float(sum(success_step_num_list))/len(success_step_num_list)
 		else:
 			success_step_mean = 0.0
-		self.make_eval_log(self.comment, learning_episode, learning_total_step, reward_mean, reward_std, step_mean, step_std, success_times, success_step_mean)
+		self.make_eval_log(self.directory_path, self.comment, learning_episode, learning_total_step, reward_mean, reward_std, step_mean, step_std, success_times, success_step_mean)
 
-	def make_eval_log(self, comment, learning_episode, learning_total_step, reward_mean, reward_std, step_mean, step_std, success_times, success_step_mean):
-		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
+	def make_eval_log(self, directory_path, comment, learning_episode, learning_total_step, reward_mean, reward_std, step_mean, step_std, success_times, success_step_mean):
+		f = open("{}/{}/evaluation/evaluation.csv".format(directory_path, comment), "a")
 		f.write(str(learning_episode+1) + "," + str(learning_total_step) + "," + str(reward_mean) + "," + str(reward_std)+ "," + str(step_mean) + "," + str(step_std)+ "," + str(success_times) + "," + str(success_step_mean) + "\n")
 		f.close()
 
