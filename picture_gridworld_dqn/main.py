@@ -50,7 +50,7 @@ parser.add_argument('--test_size', '-tes', type=int, default=2000, help='number 
 parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
 parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
-parser.add_argument('--reward_clip', '-rc', default=True, type=bool, help='clip the reward or not')
+parser.add_argument('--reward_clip', '-rc', default=1, type=int, help='clip the reward or not')
 parser.add_argument('--test_iter', '-ti', type=int, default=100, help='test iteration times')
 args = parser.parse_args()
 

@@ -51,9 +51,9 @@ class Environment():
 
 	def make_reward(self, s, a, reward_clip):
 		if self.walls[s[0]][s[1]][a]=="p" or self.walls[s[0]][s[1]][a]=="y":
-			return 0
+			return 0.0
 		if self.walls[s[0]][s[1]][a]=="r":
-			if reward_clip == True:
+			if reward_clip == 1:
 				return -1.0
 			else:
 				return -0.01
