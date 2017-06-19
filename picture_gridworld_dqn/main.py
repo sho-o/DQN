@@ -21,7 +21,7 @@ parser.add_argument('--gpu', '-g', default= -1, type=int, help='GPU ID (negative
 parser.add_argument('--directory_path', '-dp', default="result", type=str, help='directory path')
 parser.add_argument('--pic_kind', '-k', default="mnist", type=str, help='kind of pictures')
 parser.add_argument('--exp_policy', '-p', default="epsilon_greedy", type=str, help='explorlation policy')
-parser.add_argument('--epsilon_decrease_end', '-ee', default=5*10**4, type=int, help='the step number of the end of epsilon decrease')
+parser.add_argument('--epsilon_decrease_end', '-ee', default=10**4, type=int, help='the step number of the end of epsilon decrease')
 parser.add_argument('--max_episode', '-e', default=10**7, type=int, help='number of episode to learn')
 parser.add_argument('--max_step', '-s', default=1000, type=int, help='max steps per episode')
 parser.add_argument('--finish_step', '-fs', default=10**6, type=int, help='end of the learning')
@@ -184,7 +184,7 @@ def make_loss_log_file(directory_path, comment, fixed_q_update_counter):
 	f.write("fixed_q_update_counter,total_step,loss_mean,loss_std,penalty_mean,penalty_std\n")
 	f.close()
 
-def make_log(comment, episode, episode_reward, episode_average_value, epsilon, steps, total_step, run_time):
+def make_log(directory_path, comment, episode, episode_reward, episode_average_value, epsilon, steps, total_step, run_time):
 	f = open("{}/{}/log/log.csv".format(directory_path, comment), "a")
 	if episode == 0:
 		f.write("episode,reward,average_value,epsilon,episode_step,total_step,run_time\n")
