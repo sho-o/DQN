@@ -51,6 +51,7 @@ parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch
 parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 parser.add_argument('--kng', '-k', default=1, type=int, help='Use kng or not')
+parser.add_argument('--skip_mode', '-sm', type=str, default="deterministic", help='skip deterministic or stochastic')
 parser.add_argument('--skip_size', '-ss', type=int, default=4, help='skip size')
 parser.add_argument('--num_of_actions', '-na', type=int, default=4, help='number of actions')
 args = parser.parse_args()
