@@ -1,21 +1,33 @@
+import numpy as np
+from chainer import cuda
+
 class Loss_Log():
-	def __init__(self, comment, iteration):
+	def __init__(self, comment, iteration, gpu):
 		self.comment = comment
 		self.iteration = iteration
-		f = open("result/{}/loss/loss.csv".format(comment), "a")
-		f.write("episode,steps,total_step,loss,penalty\n")
-		f.close()
+		self.gpu = gpu
 
-	def __call__(self, episode, steps, total_step, agt):
-		sum_loss = 0
-		sum_penalty = 0
+	def __call__(self, fixed_q_update_counter, total_step, agt):
+		loss_list = []
+		penalty_list = []
 		for i in range(self.iteration):
 			s, a, r, new_s, done = agt.make_minibatch(total_step)
 			loss, penalty = agt.compute_loss(s, a, r, new_s, done, loss_log=True)
-			sum_loss += loss
-			sum_penalty += penalty
-		ave_loss = sum_loss/self.iteration
-		ave_penalty = sum_penalty/self.iteration
-		f = open("result/{}/loss/loss.csv".format(self.comment), "a")
-		f.write(str(episode+1) + "," + str(steps) + "," + str(total_step) + "," + str(ave_loss) + "," + str(ave_penalty) + "\n")
+			if self.gpu >= 0:
+				loss = cuda.to_cpu(loss)
+				penalty = cuda.to_cpu(penalty)
+			loss_list.append(loss)
+			penalty_list.append(penalty)
+
+		loss_array = np.array(loss_list)
+		penalty_array = np.array(penalty_list)
+		loss_mean = np.average(loss_array)
+		loss_std = np.std(loss_array)
+		penalty_mean = np.average(penalty_array)
+		penalty_std = np.std(penalty_array)
+		self.make_loss_log(self.comment, fixed_q_update_counter, total_step, loss_mean, loss_std, penalty_mean, penalty_std)
+
+	def make_loss_log(self, comment, fixed_q_update_counter, total_step, loss_mean, loss_std, penalty_mean, penalty_std):
+		f = open("result/{}/loss/{}_loss.csv".format(self.comment, fixed_q_update_counter), "a")
+		f.write(str(fixed_q_update_counter) + "," + str(total_step) + "," + str(loss_mean) + "," + str(loss_std) + "," + str(penalty_mean) + "," + str(penalty_std) + "\n")
 		f.close()
