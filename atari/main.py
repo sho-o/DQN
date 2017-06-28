@@ -10,7 +10,6 @@ import matplotlib as mpl
 mpl.use('Agg')
 from matplotlib import pylab as plt
 import gym
-import ppaquette_gym_doom
 import multiprocessing
 import loss_loger
 import evaluation
@@ -53,7 +52,6 @@ parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 parser.add_argument('--kng', '-k', default=1, type=int, help='Use kng or not')
 parser.add_argument('--skip_size', '-ss', type=int, default=4, help='skip size')
-parser.add_argument('--mode', '-m', type=str, default="default", help='default or regularize or mix')
 parser.add_argument('--num_of_actions', '-na', type=int, default=4, help='number of actions')
 args = parser.parse_args()
 
@@ -62,6 +60,7 @@ def run(args):
 	name = args.name
 	if name == "defaut":
 		if game == "doom":
+			import ppaquette_gym_doom
 			name = 'ppaquette/DoomDefendCenter-v0'
 		if game == "atari":
 			name = 'Pong-v0'
