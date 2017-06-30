@@ -1,11 +1,12 @@
 import numpy as np
 import copy
 import gym
-import ppaquette_gym_doom
 
 class Evaluation():
 	def __init__(self, game, name, comment, max_step, skip_size):
 		self.game = game
+		if game == "doom":
+			import ppaquette_gym_doom
 		self.env = gym.make(name)
 		self.comment = comment
 		self.max_step = max_step
