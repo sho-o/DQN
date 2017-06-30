@@ -16,7 +16,7 @@ import evaluation
 import pandas as pd
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--game', '-G', default='doom', type=str, help='game type (doom or atari)')
+parser.add_argument('--game', '-G', default='atari', type=str, help='game type (doom or atari)')
 parser.add_argument('--name', '-N', default='defaut', type=str, help='game name')
 parser.add_argument('--render', '-rd', type=bool, default=False, help='rendor or not')
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
@@ -51,7 +51,6 @@ parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch
 parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 parser.add_argument('--kng', '-k', default=1, type=int, help='Use kng or not')
-parser.add_argument('--skip_mode', '-sm', type=str, default="deterministic", help='skip deterministic or stochastic')
 parser.add_argument('--skip_size', '-ss', type=int, default=4, help='skip size')
 parser.add_argument('--num_of_actions', '-na', type=int, default=4, help='number of actions')
 args = parser.parse_args()
@@ -64,7 +63,7 @@ def run(args):
 			import ppaquette_gym_doom
 			name = 'ppaquette/DoomDefendCenter-v0'
 		if game == "atari":
-			name = 'Pong-v0'
+			name = 'PongDeterministic-v0'
 	render = args.render
 	comment = args.comment
 	gpu = args.gpu
@@ -98,7 +97,6 @@ def run(args):
 	loss_log_freq = args.loss_log_freq
 	rolling_mean_width = args.rolling_mean_width
 	kng = args.kng
-	skip_mode = args.skip_mode
 	skip_size = args.skip_size
 	num_of_actions = args.num_of_actions
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
@@ -111,7 +109,7 @@ def run(args):
 	env = gym.make(name)
 	#multiprocessing_lock = multiprocessing.Lock()
 	#env.configure(lock=multiprocessing_lock)
-	eva = evaluation.Evaluation(game, name, comment, max_step, skip_mode, skip_size)
+	eva = evaluation.Evaluation(game, name, comment, max_step, skip_size)
 	loss_log = loss_loger.Loss_Log(comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
@@ -133,25 +131,13 @@ def run(args):
 			if render == True:
 				env.render()
 
-			if game == "atari" and skip_mode == "deterministic":
-				r = 0
-				a, value = agt.policy(s)
-				action = env._action_set[a]
-				for i in range(skip_size):
-					r += env.ale.act(action)
-					obs_prev = np.array(obs)
-					obs = env._get_obs()
-				done = env.ale.game_over()
-				obs_processed = pre.two(obs_prev, obs)
-
-			else:
-				a, value = agt.policy(s)
-				if game == "doom":
-					action = pre.action_convert(a)
-					obs, r, done, info = env.step(action)
-				if game == "atari":
-					obs, r, done, info = env.step(a)
-				obs_processed = pre.one(obs)
+			a, value = agt.policy(s)
+			if game == "doom":
+				action = pre.action_convert(a)
+				obs, r, done, info = env.step(action)
+			if game == "atari":
+				obs, r, done, info = env.step(a)
+			obs_processed = pre.one(obs)
 
 			new_s = np.asanyarray([s[1], s[2], s[3], obs_processed], dtype=np.uint8)
 			r_clipped = pre.reward_clip(r)
