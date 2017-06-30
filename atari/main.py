@@ -57,10 +57,11 @@ args = parser.parse_args()
 
 def run(args):
 	game = args.game
+	if game == "doom":
+		import ppaquette_gym_doom
 	name = args.name
 	if name == "defaut":
 		if game == "doom":
-			import ppaquette_gym_doom
 			name = 'ppaquette/DoomDefendCenter-v0'
 		if game == "atari":
 			name = 'PongDeterministic-v0'
