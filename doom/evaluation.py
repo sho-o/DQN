@@ -4,10 +4,12 @@ import gym
 import ppaquette_gym_doom
 
 class Evaluation():
-	def __init__(self, name, comment, max_step):
-		self.env = gym.make('ppaquette/{}'.format(name))
+	def __init__(self, game, name, comment, max_step, skip_size):
+		self.game = game
+		self.env = gym.make(name)
 		self.comment = comment
 		self.max_step = max_step
+		self.skip_size = skip_size
 		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
 		f.write("episode,total_step,reward_mean,reward_std,step_mean,step_std\n")
 		f.close()
@@ -22,9 +24,13 @@ class Evaluation():
 			s[3] = pre.one(obs)
 
 			for steps in range(self.max_step):
-				a, _ = agt.policy(s, eva=True)
-				action = pre.action_convert(a)
-				obs, r, done, info = self.env.step(action)
+
+				a, value = agt.policy(s, eva=True)
+				if self.game == "doom":
+					action = pre.action_convert(a)
+					obs, r, done, info = self.env.step(action)
+				if self.game == "atari":
+					obs, r, done, info = self.env.step(a)
 				obs_processed = pre.one(obs)
 
 				new_s = np.asanyarray([s[1], s[2], s[3], obs_processed], dtype=np.uint8)

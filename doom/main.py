@@ -10,14 +10,14 @@ import matplotlib as mpl
 mpl.use('Agg')
 from matplotlib import pylab as plt
 import gym
-import ppaquette_gym_doom
 import multiprocessing
 import loss_loger
 import evaluation
 import pandas as pd
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', '-N', default='DoomDefendCenter-v0', type=str, help='game name')
+parser.add_argument('--game', '-G', default='doom', type=str, help='game type (doom or atari)')
+parser.add_argument('--name', '-N', default='defaut', type=str, help='game name')
 parser.add_argument('--render', '-rd', type=bool, default=False, help='rendor or not')
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
 parser.add_argument('--gpu', '-g', default= -1, type=int, help='GPU ID (negative value indicates CPU)')
@@ -51,10 +51,19 @@ parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch
 parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 parser.add_argument('--kng', '-k', default=1, type=int, help='Use kng or not')
+parser.add_argument('--skip_size', '-ss', type=int, default=4, help='skip size')
+parser.add_argument('--num_of_actions', '-na', type=int, default=4, help='number of actions')
 args = parser.parse_args()
 
 def run(args):
+	game = args.game
 	name = args.name
+	if name == "defaut":
+		if game == "doom":
+			import ppaquette_gym_doom
+			name = 'ppaquette/DoomDefendCenter-v0'
+		if game == "atari":
+			name = 'PongDeterministic-v0'
 	render = args.render
 	comment = args.comment
 	gpu = args.gpu
@@ -88,18 +97,19 @@ def run(args):
 	loss_log_freq = args.loss_log_freq
 	rolling_mean_width = args.rolling_mean_width
 	kng = args.kng
+	skip_size = args.skip_size
+	num_of_actions = args.num_of_actions
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
+
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
 	make_directries(comment, ["network", "log", "evaluation", "loss", "replay_memory"])
-	num_of_actions = 4
-
 	pre = preprocess.Preprocess()
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
-	env = gym.make('ppaquette/{}'.format(name))
+	env = gym.make(name)
 	#multiprocessing_lock = multiprocessing.Lock()
 	#env.configure(lock=multiprocessing_lock)
-	eva = evaluation.Evaluation(name, comment, max_step)
+	eva = evaluation.Evaluation(game, name, comment, max_step, skip_size)
 	loss_log = loss_loger.Loss_Log(comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
@@ -122,8 +132,11 @@ def run(args):
 				env.render()
 
 			a, value = agt.policy(s)
-			action = pre.action_convert(a)
-			obs, r, done, info = env.step(action)
+			if game == "doom":
+				action = pre.action_convert(a)
+				obs, r, done, info = env.step(action)
+			if game == "atari":
+				obs, r, done, info = env.step(a)
 			obs_processed = pre.one(obs)
 
 			new_s = np.asanyarray([s[1], s[2], s[3], obs_processed], dtype=np.uint8)
