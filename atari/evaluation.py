@@ -3,7 +3,7 @@ import copy
 import gym
 
 class Evaluation():
-	def __init__(self, game, name, comment, max_step, skip_size):
+	def __init__(self, game, name, comment, max_step, skip_size, eval_iter, max_initial_noop):
 		self.game = game
 		if game == "doom":
 			import ppaquette_gym_doom
@@ -11,6 +11,8 @@ class Evaluation():
 		self.comment = comment
 		self.max_step = max_step
 		self.skip_size = skip_size
+		self.eval_iter = eval_iter
+		self.max_initial_noop = max_initial_noop
 		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
 		f.write("episode,total_step,reward_mean,reward_std,step_mean,step_std\n")
 		f.close()
@@ -18,8 +20,11 @@ class Evaluation():
 	def __call__(self, agt, pre, learning_episode, learning_total_step):
 		reward_list = []
 		step_num_list = []
-		for episode in range(100):
+		initial_noop = 0
+		for episode in range(self.eval_iter):
 			episode_reward = 0
+			if self.max_initial_noop > 0:
+				initial_noop = np.random.randint(self.max_initial_noop)
 			obs = self.env.reset()
 			s = np.zeros((4, 84, 84), dtype=np.uint8)
 			s[3] = pre.one(obs)
@@ -27,6 +32,8 @@ class Evaluation():
 			for steps in range(self.max_step):
 
 				a, value = agt.policy(s, eva=True)
+				if steps < initial_noop:
+					a = 0
 				if self.game == "doom":
 					action = pre.action_convert(a)
 					obs, r, done, info = self.env.step(action)

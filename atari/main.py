@@ -53,6 +53,8 @@ parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='
 parser.add_argument('--kng', '-k', default=1, type=int, help='Use kng or not')
 parser.add_argument('--skip_size', '-ss', type=int, default=4, help='skip size')
 parser.add_argument('--num_of_actions', '-na', type=int, default=4, help='number of actions')
+parser.add_argument('--eval_iter', '-ei', type=int, default=30, help='iteration of evaluation')
+parser.add_argument('--max_initial_noop', '-mn', type=int, default=30, help='maximum times of initial noop')
 args = parser.parse_args()
 
 def run(args):
@@ -100,6 +102,8 @@ def run(args):
 	kng = args.kng
 	skip_size = args.skip_size
 	num_of_actions = args.num_of_actions
+	eval_iter = args.eval_iter
+	max_initial_noop = args.max_initial_noop
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
 	if gpu >= 0:
@@ -110,10 +114,12 @@ def run(args):
 	env = gym.make(name)
 	#multiprocessing_lock = multiprocessing.Lock()
 	#env.configure(lock=multiprocessing_lock)
-	eva = evaluation.Evaluation(game, name, comment, max_step, skip_size)
+	eva = evaluation.Evaluation(game, name, comment, max_step, skip_size, eval_iter, max_initial_noop)
 	loss_log = loss_loger.Loss_Log(comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
+	if game == "atari":
+		num_of_actions = env.action_space.n
 	run_start = time.time()
 
 	for episode in range(max_episode):
