@@ -38,7 +38,7 @@ parser.add_argument('--initial_exploration', '-i', default=5*10**4, type=int, he
 parser.add_argument('--batch_size', '-b', type=int, default=32, help='learning minibatch size')
 parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='replay memory size')
 parser.add_argument('--input_slides', '-is', type=int, default=4, help='number of input slides')
-parser.add_argument('--net_type', '-n', type=str, default="convolution", help='network type')
+parser.add_argument('--net_type', '-n', type=str, default="DQN", help='network type')
 parser.add_argument('--pic_size', '-ps', type=int, default=84, help='nput pic size')
 parser.add_argument('--discount', '-d', type=float, default=0.99, help='discount factor')
 parser.add_argument('--rms_eps', '-re', type=float, default=0.01, help='RMSProp_epsilon')
@@ -115,7 +115,7 @@ def run(args):
 
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
-	make_directries(comment, ["network", "log", "evaluation", "loss", "replay_memory"])
+	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory"])
 	pre = preprocess.Preprocess()
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type)
 	env = gym.make(name)
