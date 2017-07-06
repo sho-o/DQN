@@ -135,14 +135,12 @@ class Agent():
 			elif self.mode == "default":
 				tg_q_value = self.fixed_q(new_s)
 
-
-		a = Variable(a)
-		argmax_a = F.argmax(tg_q_value, axis=1)
 		if self.gpu >= 0:
 			a = cuda.to_gpu(a)
-			argmax_a = cuda.to_gpu(argmax_a)
 			r = cuda.to_gpu(r)
 			done = cuda.to_gpu(done)
+		a = Variable(a)
+		argmax_a = F.argmax(tg_q_value, axis=1)
 
 		q_action_value = F.select_item(q_value, a)
 		target = r + self.discount * (1.0 - done) * F.select_item(tg_q_value, argmax_a)
