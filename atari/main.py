@@ -18,6 +18,7 @@ import pandas as pd
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', '-G', default='atari', type=str, help='game type (doom or atari)')
 parser.add_argument('--name', '-N', default='defaut', type=str, help='game name')
+parser.add_argument('--directory_path', '-dp', default="result", type=str, help='directory path')
 parser.add_argument('--render', '-rd', type=bool, default=False, help='rendor or not')
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
 parser.add_argument('--gpu', '-g', default= -1, type=int, help='GPU ID (negative value indicates CPU)')
@@ -55,6 +56,9 @@ parser.add_argument('--skip_size', '-ss', type=int, default=4, help='skip size')
 parser.add_argument('--num_of_actions', '-na', type=int, default=4, help='number of actions')
 parser.add_argument('--eval_iter', '-ei', type=int, default=30, help='iteration of evaluation')
 parser.add_argument('--max_initial_noop', '-mn', type=int, default=30, help='maximum times of initial noop')
+parser.add_argument('--penalty_function', '-pvf', type=str, default="action_value", choices=['value', 'action_value', 'max_action_value'], help='value function type used to compute penatlty')
+parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=['huber', 'mean_squared'], help='penalty error function type')
+
 args = parser.parse_args()
 
 def run(args):
@@ -70,6 +74,7 @@ def run(args):
 	render = args.render
 	comment = args.comment
 	gpu = args.gpu
+	directory_path = args.directory_path
 	exp_policy = args.exp_policy
 	epsilon_decrease_end = args.epsilon_decrease_end
 	max_episode = args.max_episode
@@ -104,18 +109,20 @@ def run(args):
 	num_of_actions = args.num_of_actions
 	eval_iter = args.eval_iter
 	max_initial_noop = args.max_initial_noop
+	penalty_function = args.penalty_function
+	penalty_type = args.penalty_type
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
 	make_directries(comment, ["network", "log", "evaluation", "loss", "replay_memory"])
 	pre = preprocess.Preprocess()
-	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
+	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type)
 	env = gym.make(name)
 	#multiprocessing_lock = multiprocessing.Lock()
 	#env.configure(lock=multiprocessing_lock)
-	eva = evaluation.Evaluation(game, name, comment, max_step, skip_size, eval_iter, max_initial_noop)
-	loss_log = loss_loger.Loss_Log(comment, loss_log_iter, gpu)
+	eva = evaluation.Evaluation(directory_path, game, name, comment, max_step, skip_size, eval_iter, max_initial_noop)
+	loss_log = loss_loger.Loss_Log(directory_path, comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
 	if game == "atari":
@@ -131,7 +138,7 @@ def run(args):
 		s[3] = pre.one(obs)
 
 		if total_step > finish_step:
-			memory_save(comment, total_step, agt, gpu)
+			memory_save(directory_path, comment, total_step, agt, gpu)
 			break
 
 		for steps in range(max_step):
@@ -165,23 +172,23 @@ def run(args):
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
 					if fixed_q_update_counter % loss_log_freq == 0:
-						make_loss_log_file(comment, fixed_q_update_counter)
+						make_loss_log_file(directory_path, comment, fixed_q_update_counter)
 					if fixed_q_update_counter % loss_log_freq == 1 and fixed_q_update_counter > 1:
 							print "----------------------- make_loss_graph ------------------------------"
-							make_loss_graph(comment, fixed_q_update_counter-1)
+							make_loss_graph(directory_path, comment, fixed_q_update_counter-1)
 				if total_step % save_freq == 0:
 					print "----------------------- save the_model ------------------------------"
-					serializers.save_npz('result/{}/network/q_{}.net'.format(comment, total_step), agt.q)
+					serializers.save_npz('{}/{}/network/q_{}.net'.format(directory_path, comment, total_step), agt.q)
 				if total_step % eval_freq == 0:
 					print "----------------------- evaluate the model ------------------------------"
 					eva(agt, pre, episode, total_step)
 				if total_step % memory_save_freq == 0:
 					print "----------------------- saving replay memory ------------------------------"
-					memory_save(comment, total_step, agt, kng)
+					memory_save(directory_path, comment, total_step, agt, kng)
 				if total_step % graph_freq == 0:
 					print "----------------------- make graph ------------------------------"
-					make_test_graph(comment)
-					make_training_graph(comment, rolling_mean_width)
+					make_test_graph(directory_path, comment)
+					make_training_graph(directory_path, comment, rolling_mean_width)
 				agt.epsilon = max(0.1, agt.epsilon - epsilon_decrease_wide)
 
 			#log, print_result
@@ -189,7 +196,7 @@ def run(args):
 				run_time = time.time() - run_start
 				episode_time = time.time() - episode_start
 				episode_average_value = episode_value/steps
-				make_log(comment, episode, episode_reward, episode_average_value, agt.epsilon, steps, total_step, run_time)
+				make_log(directory_path, comment, episode, episode_reward, episode_average_value, agt.epsilon, steps, total_step, run_time)
 				if total_step % print_freq == 0:
 					print_result(episode, steps, episode_reward, episode_time, agt.epsilon, total_step, run_time)
 				break
@@ -197,34 +204,34 @@ def run(args):
 			#prepare next s
 			s = np.array(new_s)
 
-def make_directries(comment, dirs):
+def make_directries(directory_path, comment, dirs):
 	for d in dirs:
-		if not os.path.exists("result/{}/".format(comment) + d):
-			os.makedirs("result/{}/".format(comment) + d)
+		if not os.path.exists("{}/{}/".format(directory_path, comment) + d):
+			os.makedirs("{}/{}/".format(directory_path, comment) + d)
 
-def make_loss_log_file(comment, fixed_q_update_counter):
-	f = open("result/{}/loss/{}_loss.csv".format(comment, fixed_q_update_counter), "a")
+def make_loss_log_file(directory_path, comment, fixed_q_update_counter):
+	f = open("{}/{}/loss/{}_loss.csv".format(directory_path, comment, fixed_q_update_counter), "a")
 	f.write("fixed_q_update_counter,total_step,loss_mean,loss_std,penalty_mean,penalty_std\n")
 	f.close()
 
-def make_log(comment, episode, episode_reward, episode_average_value, epsilon, steps, total_step, run_time):
-	f = open("result/{}/log/log.csv".format(comment), "a")
+def make_log(directory_path, comment, episode, episode_reward, episode_average_value, epsilon, steps, total_step, run_time):
+	f = open("{}/{}/log/log.csv".format(directory_path, comment), "a")
 	if episode == 0:
 		f.write("episode,reward,average_value,epsilon,episode_step,total_step,run_time\n")
 	f.write(str(episode+1) + "," + str(episode_reward) + "," + str(episode_average_value) + "," + str(epsilon) + ',' + str(steps+1) + ',' + str(total_step) + ',' + str(run_time) + "\n")
 	f.close()
 
-def memory_save(comment, total_step, agt, kng):
+def memory_save(directory_path, comment, total_step, agt, kng):
 	mem_kinds = ["s", "a", "r", "new_s", "done"]
 	for k in mem_kinds:
 		if kng == 1:
 			path = '/disk/userdata/ohnishi-s/{}_{}.npz'.format(comment, k)
 		else:
-			path = 'result/{}/replay_memory/{}.npz'.format(comment, k)
+			path = '{}/{}/replay_memory/{}.npz'.format(directory_path, comment, k)
 		np.save(path, agt.replay_memory[k][:total_step])
 
-def make_test_graph(comment):
-	df = pd.read_csv("result/{}/evaluation/evaluation.csv".format(comment))
+def make_test_graph(directory_path, comment):
+	df = pd.read_csv("{}/{}/evaluation/evaluation.csv".format(directory_path, comment))
 	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
 	reward_mean = np.array(df.loc[:, "reward_mean"].values, dtype=np.float)
 	reward_std = np.array(df.loc[:, "reward_std"].values, dtype=np.float)
@@ -233,14 +240,14 @@ def make_test_graph(comment):
 	plt.figure()
 	plt.plot(total_step, reward_mean, color="red")
 	plt.fill_between(total_step, reward_mean+reward_std, reward_mean-reward_std, facecolor='red', alpha=0.3)
-	plt.savefig("result/{}/evaluation/reward.png".format(comment))
+	plt.savefig("{}/{}/evaluation/reward.png".format(directory_path, comment))
 	#plt.figure()
 	#plt.plot(total_step, step_mean, color="blue")
 	#plt.fill_between(total_step, step_mean+step_std, step_mean-step_std, facecolor='blue', alpha=0.3)
 	#plt.savefig("result/{}/evaluation/step.png".format(comment))
 
-def make_training_graph(comment, rolling_mean_width):
-	df = pd.read_csv("result/{}/log/log.csv".format(comment))
+def make_training_graph(directory_path, comment, rolling_mean_width):
+	df = pd.read_csv("{}/{}/log/log.csv".format(directory_path, comment))
 	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
 	reward = np.array(df.loc[:, "reward"].values, dtype=np.int)
 	reward = pd.Series(reward).rolling(window=rolling_mean_width).mean()
@@ -248,13 +255,13 @@ def make_training_graph(comment, rolling_mean_width):
 	#episode_step = pd.Series(episode_step).rolling(window=rolling_mean_width).mean()
 	plt.figure()
 	plt.plot(total_step, reward, color="red")
-	plt.savefig("result/{}/log/training_reward.png".format(comment))
+	plt.savefig("{}/{}/log/training_reward.png".format(directory_path, comment))
 	#plt.figure()
 	#plt.plot(total_step, episode_step, color="blue")
 	#plt.savefig("result/{}/log/training_step.png".format(comment))
 
-def make_loss_graph(comment, fixed_q_update_counter):
-	df = pd.read_csv("result/{}/loss/{}_loss.csv".format(comment, fixed_q_update_counter))
+def make_loss_graph(directory_path, comment, fixed_q_update_counter):
+	df = pd.read_csv("{}/{}/loss/{}_loss.csv".format(directory_path, comment, fixed_q_update_counter))
 	total_step = np.array(df.loc[:, "total_step"].values, dtype=np.int)
 	loss_mean = np.array(df.loc[:, "loss_mean"].values, dtype=np.float)
 	loss_std = np.array(df.loc[:, "loss_std"].values, dtype=np.float)
@@ -263,11 +270,11 @@ def make_loss_graph(comment, fixed_q_update_counter):
 	plt.figure()
 	plt.plot(total_step, loss_mean, color="red")
 	plt.fill_between(total_step, loss_mean+loss_std, loss_mean-loss_std, facecolor='red', alpha=0.3)
-	plt.savefig("result/{}/loss/{}_loss.png".format(comment, fixed_q_update_counter))
+	plt.savefig("{}/{}/loss/{}_loss.png".format(directory_path, comment, fixed_q_update_counter))
 	plt.figure()
 	plt.plot(total_step, penalty_mean, color="blue")
 	plt.fill_between(total_step, penalty_mean+penalty_std, penalty_mean-penalty_std, facecolor='blue', alpha=0.3)
-	plt.savefig("result/{}/loss/{}_penalty.png".format(comment, fixed_q_update_counter))
+	plt.savefig("{}/{}/loss/{}_penalty.png".format(directory_path, comment, fixed_q_update_counter))
 
 def print_result(episode, steps, episode_reward, episode_time, epsilon, total_step, run_time):
 	print("-------------------Episode {} finished after {} steps-------------------".format(episode+1, steps+1))

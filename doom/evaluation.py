@@ -3,7 +3,7 @@ import copy
 import gym
 
 class Evaluation():
-	def __init__(self, game, name, comment, max_step, skip_size, eval_iter, max_initial_noop):
+	def __init__(self, directory_path, game, name, comment, max_step, skip_size, eval_iter, max_initial_noop):
 		self.game = game
 		if game == "doom":
 			import ppaquette_gym_doom
@@ -13,6 +13,7 @@ class Evaluation():
 		self.skip_size = skip_size
 		self.eval_iter = eval_iter
 		self.max_initial_noop = max_initial_noop
+		self.directory_path = directory_path
 		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
 		f.write("episode,total_step,reward_mean,reward_std,step_mean,step_std\n")
 		f.close()
@@ -63,7 +64,7 @@ class Evaluation():
 		self.make_eval_log(self.comment, learning_episode, learning_total_step, reward_mean, reward_std, step_mean, step_std)
 
 	def make_eval_log(self, comment, learning_episode, learning_total_step, reward_mean, reward_std, step_mean, step_std):
-		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
+		f = open("{}/{}/evaluation/evaluation.csv".format(self.directory_path, comment), "a")
 		f.write(str(learning_episode+1) + "," + str(learning_total_step) + "," + str(reward_mean) + "," + str(reward_std)+ "," + str(step_mean) + "," + str(step_std) + "\n")
 		f.close()
 
