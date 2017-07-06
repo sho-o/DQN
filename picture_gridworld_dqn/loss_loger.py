@@ -19,11 +19,13 @@ class Loss_Log():
 			s, a, r, new_s, done = agt.make_minibatch(total_step)
 			loss, penalty = agt.compute_loss(s, a, r, new_s, done, loss_log=True)
 			#loss, penalty, q_qve, q_std, t_ave, t_std = agt.compute_loss(s, a, r, new_s, done, loss_log=True)
+			loss_data = loss.data
+			penalty_data = penalty.data
 			if self.gpu >= 0:
-				loss = cuda.to_cpu(loss)
-				penalty = cuda.to_cpu(penalty)
-			loss_list.append(loss.data)
-			penalty_list.append(penalty.data)
+				loss_data = cuda.to_cpu(loss_data)
+				penalty_data = cuda.to_cpu(penalty_data)
+			loss_list.append(loss_data)
+			penalty_list.append(penalty_data)
 			#q_ave_list.append(q_ave)
 			#q_std_list.append(q_std)
 			#t_ave_list.append(t_ave)
