@@ -54,7 +54,7 @@ parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 parser.add_argument('--reward_clip', '-rc', default=1, type=int, help='clip the reward or not')
 parser.add_argument('--test_iter', '-ti', type=int, default=100, help='test iteration times')
-parser.add_argument('--penalty_function', '-pv', type=str, default="action_value", choices=['value', 'action_value', 'max_action_value'], help='value function type used to compute penatlty')
+parser.add_argument('--penalty_function', '-pvf', type=str, default="action_value", choices=['value', 'action_value', 'max_action_value'], help='value function type used to compute penatlty')
 parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=['huber', 'mean_squared'], help='penalty error function type')
 
 args = parser.parse_args()
