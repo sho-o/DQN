@@ -19,8 +19,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
 parser.add_argument('--gpu', '-g', default= -1, type=int, help='GPU ID (negative value indicates CPU)')
 parser.add_argument('--directory_path', '-dp', default="result", type=str, help='directory path')
-parser.add_argument('--pic_kind', '-k', default="mnist", type=str, help='kind of pictures')
-parser.add_argument('--exp_policy', '-p', default="epsilon_greedy", type=str, help='explorlation policy')
+parser.add_argument('--pic_kind', '-k', default="mnist", choices=['mnist', 'cifer10'], type=str, help='kind of pictures')
+parser.add_argument('--exp_policy', '-p', default="epsilon_greedy", choices=['epsilon_greedy', 'softmax'], type=str, help='explorlation policy')
 parser.add_argument('--epsilon_decrease_end', '-ee', default=10**4, type=int, help='the step number of the end of epsilon decrease')
 parser.add_argument('--max_episode', '-e', default=10**7, type=int, help='number of episode to learn')
 parser.add_argument('--max_step', '-s', default=1000, type=int, help='max steps per episode')
@@ -35,14 +35,14 @@ parser.add_argument('--initial_exploration', '-i', default=10**3, type=int, help
 parser.add_argument('--batch_size', '-b', type=int, default=32, help='learning minibatch size')
 parser.add_argument('--memory_size', '-ms', type=int, default=10**6, help='replay memory size')
 parser.add_argument('--input_slides', '-is', type=int, default=1, help='number of input slides')
-parser.add_argument('--net_type', '-n', type=str, default="full", help='network type (full, conv, DQN)')
+parser.add_argument('--net_type', '-n', type=str, default="full", choices=['full', 'conv', 'DQN'], help='network type (full, conv, DQN)')
 parser.add_argument('--pic_size', '-ps', type=int, default=28, help='nput pic size')
 parser.add_argument('--discount', '-d', type=float, default=0.99, help='discount factor')
 parser.add_argument('--rms_eps', '-re', type=float, default=0.01, help='RMSProp_epsilon')
 parser.add_argument('--rms_lr', '-lr', type=float, default=0.00025, help='RMSProp_learning_rate')
-parser.add_argument('--optimizer_type', '-o', type=str, default="rmsprop", help='type of optimizer')
+parser.add_argument('--optimizer_type', '-o', type=str, default="rmsprop", choices=['rmsprop', 'sgd', 'adam'], help='type of optimizer')
 parser.add_argument('--start_point', '-sp', type=int, default=1, help='start point')
-parser.add_argument('--mode', '-m', type=str, default="default", help='default or regularize or mix')
+parser.add_argument('--mode', '-m', type=str, default="default", choices=['default', 'regularize', 'mix'], help='default or regularize or mix')
 parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regularization threshold')
 parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
 parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
@@ -54,6 +54,9 @@ parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 parser.add_argument('--reward_clip', '-rc', default=1, type=int, help='clip the reward or not')
 parser.add_argument('--test_iter', '-ti', type=int, default=100, help='test iteration times')
+parser.add_argument('--penalty_function', '-pv', type=str, default="action_value", choices=['value', 'action_value', 'max_action_value'], help='value function type used to compute penatlty')
+parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=['huber', 'mean_squared'], help='penalty error function type')
+
 args = parser.parse_args()
 
 def run(args):
@@ -95,6 +98,8 @@ def run(args):
 	rolling_mean_width = args.rolling_mean_width
 	reward_clip = args.reward_clip
 	test_iter = args.test_iter
+	penalty_function = args.penalty_function
+	penalty_type = args.penalty_type
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
@@ -112,7 +117,7 @@ def run(args):
 	env = environment.Environment(training_pics)
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
-	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate)
+	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type)
 	eva = evaluation.Evaluation(directory_path, comment, eval_pics, s_init, actions, max_step, reward_clip, test_iter)
 	loss_log = loss_loger.Loss_Log(directory_path, comment, loss_log_iter, gpu)
 	total_step = 0
@@ -187,7 +192,7 @@ def make_directries(directory_path, comment, dirs):
 
 def make_loss_log_file(directory_path, comment, fixed_q_update_counter):
 	f = open("{}/{}/loss/{}_loss.csv".format(directory_path, comment, fixed_q_update_counter), "a")
-	f.write("fixed_q_update_counter,total_step,loss_mean,loss_std,penalty_mean,penalty_std\n")
+	f.write("fixed_q_update_counter,total_step,loss_mean,loss_std,penalty_mean,penalty_std,q_ave_ave,q_std_ave,t_ave_ave,t_std_ave\n")
 	f.close()
 
 def make_log(directory_path, comment, episode, episode_reward, episode_average_value, epsilon, steps, total_step, run_time):

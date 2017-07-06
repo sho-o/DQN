@@ -1,11 +1,12 @@
 import numpy as np
 import copy
+import chainer
 from chainer import Variable, optimizers, cuda
 import chainer.functions as F
 import network
 
 class Agent():
-	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate):
+	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type):
 		self.exp_policy = exp_policy
 		self.net_type = net_type
 		self.gpu = gpu
@@ -43,6 +44,8 @@ class Agent():
 		self.threshold = threshold
 		self.penalty_weight = penalty_weight
 		self.mix_rate = mix_rate
+		self.penalty_function = penalty_function
+		self.penalty_type = penalty_type
 
 	def policy(self, s, eva=False):
 		if self.net_type == "full":
@@ -54,10 +57,11 @@ class Agent():
 		s = Variable(s)
 
 		if self.exp_policy == "epsilon_greedy":
-			q = self.q(s)
-			q = q.data[0]
-			if self.gpu >= 0:
-				q = cuda.to_cpu(q)
+			with chainer.no_backprop_mode():
+				q = self.q(s)
+				q = q.data[0]
+				if self.gpu >= 0:
+					q = cuda.to_cpu(q)
 			q_max = np.amax(q)
 
 			if eva == True:
@@ -97,10 +101,10 @@ class Agent():
 			index = np.random.randint(0, self.memory_size, self.batch_size)
 
 		s_batch = np.ndarray(shape=(self.batch_size, self.input_slides, self.size, self.size), dtype=np.float32)
-		a_batch = np.ndarray(shape=(self.batch_size, 1), dtype=np.uint8)
-		r_batch = np.ndarray(shape=(self.batch_size, 1), dtype=np.float32)
+		a_batch = np.ndarray(shape=(self.batch_size), dtype=np.int)
+		r_batch = np.ndarray(shape=(self.batch_size), dtype=np.float32)
 		new_s_batch = np.ndarray(shape=(self.batch_size, self.input_slides, self.size, self.size), dtype=np.float32)
-		done_batch = np.ndarray(shape=(self.batch_size, 1), dtype=np.bool)
+		done_batch = np.ndarray(shape=(self.batch_size), dtype=np.bool)
 
 		for i in range(self.batch_size):
 			s_batch[i] = np.asarray(self.replay_memory["s"][index[i]], dtype=np.float32)
@@ -122,53 +126,62 @@ class Agent():
 		s = Variable(s)
 		new_s = Variable(new_s)
 		q_value = self.q(s)
-		q_value_data = q_value.data
 
-		if self.mode == "regularize":
-			tg_q_value = self.q(new_s)
-		elif self.mode == "target_mix":
-			tg_q_value = (1.0-self.mix_rate) * self.q(new_s) + self.mix_rate * self.fixed_q(new_s)
-		elif self.mode == "default":
-			tg_q_value = self.fixed_q(new_s)
+		with chainer.no_backprop_mode():
+			if self.mode == "regularize":
+				tg_q_value = self.q(new_s)
+			elif self.mode == "target_mix":
+				tg_q_value = (1.0-self.mix_rate) * self.q(new_s) + self.mix_rate * self.fixed_q(new_s)
+			elif self.mode == "default":
+				tg_q_value = self.fixed_q(new_s)
 
-		tg_q_value_data = tg_q_value.data
 
-		#cpu
+		a = Variable(a)
+		argmax_a = F.argmax(tg_q_value, axis=1)
 		if self.gpu >= 0:
-			q_value_data = cuda.to_cpu(q_value_data)
-			tg_q_value_data = cuda.to_cpu(tg_q_value_data)
+			a = cuda.to_gpu(a)
+			argmax_a = cuda.to_gpu(argmax_a)
+			r = cuda.to_gpu(r)
+			done = cuda.to_gpu(done)
 
-		max_tg_q_value = np.asarray(np.amax(tg_q_value_data, axis=1), dtype=np.float32)
-		target = np.array(q_value_data, dtype=np.float32)
-		for i in range(self.batch_size):
-			if done[i][0] is True:
-				tmp = r[i]
-			else:
-				tmp = r[i] + self.discount * max_tg_q_value[i]
-			target[i, a[i]] = tmp
+		q_action_value = F.select_item(q_value, a)
+		target = r + self.discount * (1.0 - done) * F.select_item(tg_q_value, argmax_a)
+		#target is float32
 
-		#gpu
-		if self.gpu >= 0:
-			target = cuda.to_gpu(target)
-		td = Variable(target) - q_value
+		q_action_value = F.reshape(q_action_value, (-1, 1))
+		target = F.reshape(target, (-1, 1))
 
-		#td_clip(keeping variable history)
-		td_tmp = td.data + 10.0 * (abs(td.data) <= 1)
-		td_clip = td * (abs(td.data) <= 1) + td/abs(td_tmp) * (abs(td.data) > 1)
-
-		zero = np.zeros((self.batch_size, self.num_of_actions), dtype=np.float32)
-		if self.gpu >= 0:
-			zero = cuda.to_gpu(zero)
-		zero = Variable(zero)
-		loss = F.mean_squared_error(td_clip, zero)
+		loss_sum = F.sum(F.huber_loss(q_action_value, target, delta=1.0))
+		loss = loss_sum / q_action_value.shape[0]
 
 		if self.mode == "regularize" or loss_log == True:
-			if self.gpu >= 0:
-				q_value_data = cuda.to_gpu(q_value_data)
-			penalty = F.mean_squared_error(q_value, self.fixed_q(s))
+			if self.penalty_function == "value":
+				y = q_value
+				with chainer.no_backprop_mode():
+					t = self.fixed_q(s)
+			if self.penalty_function == "action_value":
+				y = q_action_value
+				with chainer.no_backprop_mode():
+					t = F.select_item(self.fixed_q(s), a)
+					t = F.reshape(t, (-1, 1))
+			if self.penalty_function == "max_action_value":
+				y = F.select_item(q_value, argmax_a)
+				y = F.reshape(y, (-1, 1))
+				with chainer.no_backprop_mode():
+					t = F.select_item(tg_q_value, argmax_a)
+					t = F.reshape(t, (-1, 1))
+
+			if self.penalty_type == "huber":
+				penalty_sum = F.sum(F.huber_loss(y, t, delta=1.0))
+				penalty = penalty_sum / (q_value.shape[0]*q_value.shape[1])
+			if self.penalty_type == "mean_squared":
+				penalty = F.mean_squared_error(y, t)
 
 			if loss_log == True:
-				return loss.data, penalty.data
+				#y_data = cuda.to_cpu(y.data)
+				#t_data = cuda.to_cpu(t.data)
+				return loss, penalty
+				#return loss, penalty, np.average(y_data), np.std(y_data), np.average(t_data), np.std(t_data)
 
 			if penalty.data > self.threshold:
 				loss = loss + self.penalty_weight * penalty
