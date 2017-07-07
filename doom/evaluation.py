@@ -14,7 +14,7 @@ class Evaluation():
 		self.eval_iter = eval_iter
 		self.max_initial_noop = max_initial_noop
 		self.directory_path = directory_path
-		f = open("result/{}/evaluation/evaluation.csv".format(comment), "a")
+		f = open("{}/{}/evaluation/evaluation.csv".format(self.directory_path, comment), "a")
 		f.write("episode,total_step,reward_mean,reward_std,step_mean,step_std\n")
 		f.close()
 
