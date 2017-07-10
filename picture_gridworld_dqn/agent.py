@@ -171,7 +171,7 @@ class Agent():
 
 			if self.penalty_type == "huber":
 				penalty_sum = F.sum(F.huber_loss(y, t, delta=1.0))
-				penalty = penalty_sum / (q_value.shape[0]*q_value.shape[1])
+				penalty = penalty_sum / (y.shape[0]*y.shape[1])
 			if self.penalty_type == "mean_squared":
 				penalty = F.mean_squared_error(y, t)
 
