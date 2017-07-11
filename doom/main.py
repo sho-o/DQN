@@ -223,8 +223,6 @@ def memory_save(game, directory_path, comment, total_step, agt):
 	mem_kinds = ["s", "a", "r", "new_s", "done"]
 	for k in mem_kinds:
 		if os.path.exists("/disk/userdata/ohnishi-s/"):
-			if not os.path.exists("/disk/userdata/ohnishi-s/{}".format(game)):
-				os.makedirs("/disk/userdata/ohnishi-s/{}".format(game))
 			if not os.path.exists("/disk/userdata/ohnishi-s/{}/{}".format(game, directory_path)):
 				os.makedirs("/disk/userdata/ohnishi-s/{}/{}".format(game, directory_path))
 			path = '/disk/userdata/ohnishi-s/{}/{}/{}_{}'.format(game, directory_path, comment, k)
