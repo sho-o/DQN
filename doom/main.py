@@ -51,7 +51,6 @@ parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix
 parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
 parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record loss frequency per fixed q upddate')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
-parser.add_argument('--kng', '-k', default=1, type=int, help='Use kng or not')
 parser.add_argument('--skip_size', '-ss', type=int, default=4, help='skip size')
 parser.add_argument('--num_of_actions', '-na', type=int, default=4, help='number of actions')
 parser.add_argument('--eval_iter', '-ei', type=int, default=30, help='iteration of evaluation')
@@ -104,7 +103,6 @@ def run(args):
 	penalty_weight = args.penalty_weight
 	loss_log_freq = args.loss_log_freq
 	rolling_mean_width = args.rolling_mean_width
-	kng = args.kng
 	skip_size = args.skip_size
 	num_of_actions = args.num_of_actions
 	eval_iter = args.eval_iter
@@ -138,7 +136,7 @@ def run(args):
 		s[3] = pre.one(obs)
 
 		if total_step > finish_step:
-			memory_save(directory_path, comment, total_step, agt, gpu)
+			memory_save(game, directory_path, comment, total_step, agt, gpu)
 			break
 
 		for steps in range(max_step):
@@ -184,7 +182,7 @@ def run(args):
 					eva(agt, pre, episode, total_step)
 				if total_step % memory_save_freq == 0:
 					print "----------------------- saving replay memory ------------------------------"
-					memory_save(directory_path, comment, total_step, agt, kng)
+					memory_save(game, directory_path, comment, total_step, agt)
 				if total_step % graph_freq == 0:
 					print "----------------------- make graph ------------------------------"
 					make_test_graph(directory_path, comment)
@@ -221,13 +219,17 @@ def make_log(directory_path, comment, episode, episode_reward, episode_average_v
 	f.write(str(episode+1) + "," + str(episode_reward) + "," + str(episode_average_value) + "," + str(epsilon) + ',' + str(steps+1) + ',' + str(total_step) + ',' + str(run_time) + "\n")
 	f.close()
 
-def memory_save(directory_path, comment, total_step, agt, kng):
+def memory_save(game, directory_path, comment, total_step, agt):
 	mem_kinds = ["s", "a", "r", "new_s", "done"]
 	for k in mem_kinds:
-		if kng == 1:
-			path = '/disk/userdata/ohnishi-s/{}_{}.npz'.format(comment, k)
+		if os.path.exists("/disk/userdata/ohnishi-s/"):
+			if not os.path.exists("/disk/userdata/ohnishi-s/{}".format(game)):
+				os.makedirs("/disk/userdata/ohnishi-s/{}".format(game))
+			if not os.path.exists("/disk/userdata/ohnishi-s/{}/{}".format(game, directory_path)):
+				os.makedirs("/disk/userdata/ohnishi-s/{}/{}".format(game, directory_path))
+			path = '/disk/userdata/ohnishi-s/{}/{}/{}_{}'.format(game, directory_path, comment, k)
 		else:
-			path = '{}/{}/replay_memory/{}.npz'.format(directory_path, comment, k)
+			path = '{}/{}/replay_memory/{}'.format(directory_path, comment, k)
 		np.save(path, agt.replay_memory[k][:total_step])
 
 def make_test_graph(directory_path, comment):
