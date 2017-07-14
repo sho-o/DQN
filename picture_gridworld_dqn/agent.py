@@ -166,7 +166,7 @@ class Agent():
 				y = F.select_item(self.q(new_s), argmax_a)
 				y = F.reshape(y, (-1, 1))
 				with chainer.no_backprop_mode():
-					t = F.select_item(tg_q_value, argmax_a)
+					t = F.select_item(self.fixed_q(new_s), argmax_a)
 					t = F.reshape(t, (-1, 1))
 
 			if self.penalty_type == "huber":
