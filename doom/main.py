@@ -222,10 +222,10 @@ def make_log(directory_path, comment, episode, episode_reward, episode_average_v
 def memory_save(game, directory_path, comment, total_step, agt):
 	mem_kinds = ["s", "a", "r", "new_s", "done"]
 	for k in mem_kinds:
-		if os.path.exists("/disk/userdata/ohnishi-s/"):
-			if not os.path.exists("/disk/userdata/ohnishi-s/{}/{}".format(game, directory_path)):
-				os.makedirs("/disk/userdata/ohnishi-s/{}/{}".format(game, directory_path))
-			path = '/disk/userdata/ohnishi-s/{}/{}/{}_{}'.format(game, directory_path, comment, k)
+		if os.path.exists("/disk/waikiki/ohnishi-s/"):
+			if not os.path.exists("/disk/waikiki/ohnishi-s/{}/{}".format(game, directory_path)):
+				os.makedirs("/disk/waikiki/ohnishi-s/{}/{}".format(game, directory_path))
+			path = '/disk/waikiki/ohnishi-s/{}/{}/{}_{}'.format(game, directory_path, comment, k)
 		else:
 			path = '{}/{}/replay_memory/{}'.format(directory_path, comment, k)
 		np.save(path, agt.replay_memory[k][:total_step])
