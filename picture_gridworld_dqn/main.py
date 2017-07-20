@@ -13,7 +13,7 @@ import evaluation
 import loss_loger
 import pandas as pd
 from sklearn.datasets import fetch_mldata
-
+import random
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
@@ -105,8 +105,12 @@ def run(args):
 
 	run_start = time.time()
 	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss"])
+	seed = 0
+	random.seed(seed)
+	np.random.seed(seed)
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
+		cuda.cupy.random.seed(seed)
 	training_pics, test_pics, all_pics = separate_data(pic_kind, training_size, test_size)
 	if test_with_all_data:
 		eval_pics = all_pics

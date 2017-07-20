@@ -14,6 +14,7 @@ import multiprocessing
 import loss_loger
 import evaluation
 import pandas as pd
+import random
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', '-G', default='doom', type=str, help='game type (doom or atari)')
@@ -111,8 +112,13 @@ def run(args):
 	penalty_type = args.penalty_type
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
+	seed = 0
+	random.seed(seed)
+	np.random.seed(seed)
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
+		cuda.cupy.random.seed(seed)
+
 	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory"])
 	pre = preprocess.Preprocess()
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type)
