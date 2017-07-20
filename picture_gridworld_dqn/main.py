@@ -56,6 +56,7 @@ parser.add_argument('--reward_clip', '-rc', default=1, type=int, help='clip the 
 parser.add_argument('--test_iter', '-ti', type=int, default=100, help='test iteration times')
 parser.add_argument('--penalty_function', '-pvf', type=str, default="action_value", choices=['value', 'action_value', 'max_action_value'], help='value function type used to compute penatlty')
 parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=['huber', 'mean_squared'], help='penalty error function type')
+parser.add_argument('--seed', '-sd', type=int, default=0, help='random seed')
 
 args = parser.parse_args()
 
@@ -100,17 +101,19 @@ def run(args):
 	test_iter = args.test_iter
 	penalty_function = args.penalty_function
 	penalty_type = args.penalty_type
+	seed = args.seed
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
 	run_start = time.time()
 	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss"])
-	seed = 0
+
 	random.seed(seed)
 	np.random.seed(seed)
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
 		cuda.cupy.random.seed(seed)
+
 	training_pics, test_pics, all_pics = separate_data(pic_kind, training_size, test_size)
 	if test_with_all_data:
 		eval_pics = all_pics

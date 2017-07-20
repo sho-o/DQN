@@ -58,6 +58,7 @@ parser.add_argument('--eval_iter', '-ei', type=int, default=30, help='iteration 
 parser.add_argument('--max_initial_noop', '-mn', type=int, default=30, help='maximum times of initial noop')
 parser.add_argument('--penalty_function', '-pvf', type=str, default="action_value", choices=['value', 'action_value', 'max_action_value'], help='value function type used to compute penatlty')
 parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=['huber', 'mean_squared'], help='penalty error function type')
+parser.add_argument('--seed', '-sd', type=int, default=0, help='random seed')
 
 args = parser.parse_args()
 
@@ -110,14 +111,15 @@ def run(args):
 	max_initial_noop = args.max_initial_noop
 	penalty_function = args.penalty_function
 	penalty_type = args.penalty_type
+	seed = args.seed
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
-	seed = 0
 	random.seed(seed)
 	np.random.seed(seed)
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
 		cuda.cupy.random.seed(seed)
+
 	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory"])
 	pre = preprocess.Preprocess()
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type)
