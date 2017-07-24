@@ -50,7 +50,8 @@ parser.add_argument('--training_size', '-ts', type=int, default=2000, help='numb
 parser.add_argument('--test_size', '-tes', type=int, default=2000, help='number of kinds of test pictures')
 parser.add_argument('--test_with_all_data', '-ta', type=bool, help='use all data for test or not')
 parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
-parser.add_argument('--loss_log_freq', '-lf', default=20, type=int, help='record loss frequency per fixed q upddate')
+parser.add_argument('--loss_log_freq', '-lf', default=200000, type=int, help='record loss frequency per step')
+parser.add_argument('--loss_log_length', '-ll', default=1000, type=int, help='record loss step length')
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 parser.add_argument('--reward_clip', '-rc', default=1, type=int, help='clip the reward or not')
 parser.add_argument('--test_iter', '-ti', type=int, default=100, help='test iteration times')
@@ -96,6 +97,7 @@ def run(args):
 	test_with_all_data = args.test_with_all_data
 	loss_log_iter = args.loss_log_iter
 	loss_log_freq = args.loss_log_freq
+	loss_log_length = args.loss_log_length
 	rolling_mean_width = args.rolling_mean_width
 	reward_clip = args.reward_clip
 	test_iter = args.test_iter
@@ -129,6 +131,7 @@ def run(args):
 	loss_log = loss_loger.Loss_Log(directory_path, comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
+	loss_log_flag = 0
 
 	for episode in range(max_episode):
 		episode_start = time.time()
@@ -142,6 +145,7 @@ def run(args):
 
 		for steps in range(max_step):
 			a, value = agt.policy(pic_s)
+			print a
 			new_s = env.generate_next_s(s, actions[a])
 			pic_new_s = env.s_to_pic(new_s)
 			r = env.make_reward(s, actions[a], reward_clip)
@@ -155,17 +159,23 @@ def run(args):
 			if total_step > initial_exploration:
 				if total_step % q_update_freq == 0:
 					agt.q_update(total_step)
-				if fixed_q_update_counter % loss_log_freq == 0 and fixed_q_update_counter > 0:
-					loss_log(fixed_q_update_counter, total_step, agt)
+				if (total_step+1) % loss_log_freq == 0:
+					make_loss_log_file(directory_path, comment, total_step+1)
+					loss_log_counter = 0
+					loss_log_step = total_step+1
+					loss_log_flag = 1
+				if loss_log_flag == 1:
+					loss_log(loss_log_step, fixed_q_update_counter, total_step, agt)
+					loss_log_counter += 1
+					if loss_log_counter % loss_log_length == 0:
+						loss_log_flag = 0
 				if total_step % fixed_q_update_freq == 0:
 					print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
-					if fixed_q_update_counter % loss_log_freq == 0:
-						make_loss_log_file(directory_path, comment, fixed_q_update_counter)
-					if fixed_q_update_counter % loss_log_freq == 1 and fixed_q_update_counter > 1:
-							print "----------------------- make_loss_graph ------------------------------"
-							make_loss_graph(directory_path, comment, fixed_q_update_counter-1)
+				#if total_step % loss_log_freq == 1 and fixed_q_update_counter > 1:
+					#print "----------------------- make_loss_graph ------------------------------"
+					#make_loss_graph(directory_path, comment, fixed_q_update_counter-1)
 				#if total_step % save_freq == 0:
 					#print "----------------------- save the_model ------------------------------"
 					#serializers.save_npz('{}/{}/network/q_{}.net'.format(directory_path, comment, total_step), agt.q)

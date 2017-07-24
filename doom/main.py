@@ -179,8 +179,8 @@ def run(args):
 					if fixed_q_update_counter % loss_log_freq == 0:
 						make_loss_log_file(directory_path, comment, fixed_q_update_counter)
 					if fixed_q_update_counter % loss_log_freq == 1 and fixed_q_update_counter > 1:
-							print "----------------------- make_loss_graph ------------------------------"
-							make_loss_graph(directory_path, comment, fixed_q_update_counter-1)
+						print "----------------------- make_loss_graph ------------------------------"
+						make_loss_graph(directory_path, comment, fixed_q_update_counter-1)
 				if total_step % save_freq == 0:
 					print "----------------------- save the_model ------------------------------"
 					serializers.save_npz('{}/{}/network/q_{}.net'.format(directory_path, comment, total_step), agt.q)
