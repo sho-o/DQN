@@ -184,5 +184,4 @@ class Agent():
 			if penalty.data > self.threshold:
 				loss = loss + self.penalty_weight * penalty
 
-		print loss
 		return loss

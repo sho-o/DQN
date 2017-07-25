@@ -145,7 +145,6 @@ def run(args):
 
 		for steps in range(max_step):
 			a, value = agt.policy(pic_s)
-			print a
 			new_s = env.generate_next_s(s, actions[a])
 			pic_new_s = env.s_to_pic(new_s)
 			r = env.make_reward(s, actions[a], reward_clip)
