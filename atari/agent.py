@@ -6,7 +6,7 @@ import chainer.functions as F
 import network
 
 class Agent():
-	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type):
+	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type, final_penalty_cut):
 		self.exp_policy = exp_policy
 		self.net_type = net_type
 		self.gpu = gpu
@@ -46,6 +46,7 @@ class Agent():
 		self.mix_rate = mix_rate
 		self.penalty_function = penalty_function
 		self.penalty_type = penalty_type
+		self.final_penalty_cut = final_penalty_cut
 
 	def policy(self, s, eva=False):
 		if self.net_type == "full":
@@ -170,7 +171,10 @@ class Agent():
 					t = F.reshape(t, (-1, 1))
 
 			if self.penalty_type == "huber":
-				penalty_sum = F.sum(F.huber_loss(y, t, delta=1.0))
+				if self.final_penalty_cut == 1:
+					penalty_sum = F.sum((1.0 - done)*F.huber_loss(y, t, delta=1.0))
+				else:
+					penalty_sum = F.sum(F.huber_loss(y, t, delta=1.0))
 				penalty = penalty_sum / (y.shape[0]*y.shape[1])
 			if self.penalty_type == "mean_squared":
 				penalty = F.mean_squared_error(y, t)

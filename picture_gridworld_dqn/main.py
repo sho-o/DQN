@@ -58,7 +58,7 @@ parser.add_argument('--test_iter', '-ti', type=int, default=100, help='test iter
 parser.add_argument('--penalty_function', '-pvf', type=str, default="action_value", choices=['value', 'action_value', 'max_action_value'], help='value function type used to compute penatlty')
 parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=['huber', 'mean_squared'], help='penalty error function type')
 parser.add_argument('--seed', '-sd', type=int, default=0, help='random seed')
-
+parser.add_argument('--final_penalty_cut', '-fc', type=int, default=1, help='cut the penalty of end of episode or not')
 args = parser.parse_args()
 
 def run(args):
@@ -104,6 +104,7 @@ def run(args):
 	penalty_function = args.penalty_function
 	penalty_type = args.penalty_type
 	seed = args.seed
+	final_penalty_cut = args.final_penalty_cut
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
@@ -126,7 +127,7 @@ def run(args):
 	env = environment.Environment(training_pics)
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
-	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type)
+	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type, final_penalty_cut)
 	eva = evaluation.Evaluation(directory_path, comment, eval_pics, s_init, actions, max_step, reward_clip, test_iter)
 	loss_log = loss_loger.Loss_Log(directory_path, comment, loss_log_iter, gpu)
 	total_step = 0

@@ -17,7 +17,6 @@ class Loss_Log():
 		#t_std_list = []
 		for i in range(self.iteration):
 			s, a, r, new_s, done = agt.make_minibatch(total_step)
-			print a
 			loss, penalty = agt.compute_loss(s, a, r, new_s, done, loss_log=True)
 			#loss, penalty, q_qve, q_std, t_ave, t_std = agt.compute_loss(s, a, r, new_s, done, loss_log=True)
 			loss_data = loss.data
