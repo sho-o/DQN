@@ -59,6 +59,7 @@ parser.add_argument('--penalty_function', '-pvf', type=str, default="action_valu
 parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=['huber', 'mean_squared'], help='penalty error function type')
 parser.add_argument('--seed', '-sd', type=int, default=0, help='random seed')
 parser.add_argument('--final_penalty_cut', '-fc', type=int, default=1, help='cut the penalty of end of episode or not')
+parser.add_argument('--data_seed', '-ds', type=int, default=0, help='randam seed for data separation')
 args = parser.parse_args()
 
 def run(args):
@@ -105,11 +106,16 @@ def run(args):
 	penalty_type = args.penalty_type
 	seed = args.seed
 	final_penalty_cut = args.final_penalty_cut
+	data_seed = args.data_seed
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
 	run_start = time.time()
 	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss"])
+
+	if data_seed >= 0:
+		np.random.seed(data_seed)
+		training_pics, test_pics, all_pics = separate_data(pic_kind, training_size, test_size)
 
 	random.seed(seed)
 	np.random.seed(seed)
@@ -117,7 +123,9 @@ def run(args):
 		cuda.get_device(gpu).use()
 		cuda.cupy.random.seed(seed)
 
-	training_pics, test_pics, all_pics = separate_data(pic_kind, training_size, test_size)
+	if data_seed < 0:
+		training_pics, test_pics, all_pics = separate_data(pic_kind, training_size, test_size)
+
 	if test_with_all_data:
 		eval_pics = all_pics
 		print eval_pics.shape
