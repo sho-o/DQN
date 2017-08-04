@@ -60,6 +60,7 @@ parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=
 parser.add_argument('--seed', '-sd', type=int, default=0, help='random seed')
 parser.add_argument('--final_penalty_cut', '-fc', type=int, default=1, help='cut the penalty of end of episode or not')
 parser.add_argument('--data_seed', '-ds', type=int, default=0, help='randam seed for data separation')
+parser.add_argument('--f0', '-f0', type=bool, help='default q-learning')
 args = parser.parse_args()
 
 def run(args):
@@ -107,6 +108,7 @@ def run(args):
 	seed = args.seed
 	final_penalty_cut = args.final_penalty_cut
 	data_seed = args.data_seed
+	f0 = args.f0
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
@@ -165,6 +167,10 @@ def run(args):
 
 			#update and save
 			if total_step > initial_exploration:
+				if f0 == True:
+					print "----------------------- fixed Q update ------------------------------"
+					agt.fixed_q_updqte()
+					fixed_q_update_counter += 1
 				if total_step % q_update_freq == 0:
 					agt.q_update(total_step)
 				if (total_step+1) % loss_log_freq == 0:
@@ -177,7 +183,7 @@ def run(args):
 					loss_log_counter += 1
 					if loss_log_counter % loss_log_length == 0:
 						loss_log_flag = 0
-				if total_step % fixed_q_update_freq == 0:
+				if f0 == False and total_step % fixed_q_update_freq == 0:
 					print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
