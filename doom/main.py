@@ -123,7 +123,9 @@ def run(args):
 		cuda.get_device(gpu).use()
 		cuda.cupy.random.seed(seed)
 
-	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory"])
+	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory", "std_out"])
+	std_o = open("{}/{}/std_out/std_out.txt".format(directory_path, comment), "w")
+	sys.stdout = std_o
 	pre = preprocess.Preprocess()
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type, final_penalty_cut)
 	env = gym.make(name)

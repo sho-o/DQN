@@ -113,7 +113,9 @@ def run(args):
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
 	run_start = time.time()
-	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss"])
+	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "std_out"])
+	std_o = open("{}/{}/std_out/std_out.txt".format(directory_path, comment), "w")
+	sys.stdout = std_o
 
 	if data_seed >= 0:
 		np.random.seed(data_seed)
@@ -168,10 +170,11 @@ def run(args):
 			#update and save
 			if total_step > initial_exploration:
 				if f0 == True:
-					print "----------------------- fixed Q update ------------------------------"
+					#print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
 				if total_step % q_update_freq == 0:
+					print "\n\n", total_step, "---total_step---", "\n\n"
 					agt.q_update(total_step)
 				if (total_step+1) % loss_log_freq == 0:
 					make_loss_log_file(directory_path, comment, total_step+1)
@@ -184,7 +187,7 @@ def run(args):
 					if loss_log_counter % loss_log_length == 0:
 						loss_log_flag = 0
 				if f0 == False and total_step % fixed_q_update_freq == 0:
-					print "----------------------- fixed Q update ------------------------------"
+					#print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
 				#if total_step % loss_log_freq == 1 and fixed_q_update_counter > 1:
