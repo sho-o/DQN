@@ -15,6 +15,7 @@ import loss_loger
 import evaluation
 import pandas as pd
 import random
+import cupy
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', '-G', default='doom', type=str, help='game type (doom or atari)')
@@ -121,7 +122,7 @@ def run(args):
 	np.random.seed(seed)
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
-		cuda.cupy.random.seed(seed)
+		cupy.random.seed(seed)
 
 	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory", "std_out"])
 	std_o = open("{}/{}/std_out/std_out.txt".format(directory_path, comment), "w")
