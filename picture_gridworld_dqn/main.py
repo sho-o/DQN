@@ -48,7 +48,7 @@ parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='re
 parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
 parser.add_argument('--training_size', '-ts', type=int, default=2000, help='number of kinds of training pictures')
 parser.add_argument('--test_size', '-tes', type=int, default=2000, help='number of kinds of test pictures')
-parser.add_argument('--test_with_all_data', '-ta', type=bool, help='use all data for test or not')
+parser.add_argument('--test_with_all_data', '-ta', type=bool, default= False, help='use all data for test or not')
 parser.add_argument('--loss_log_iter', '-li', type=int, default=10, help='(batch) iteration  compute average loss and penalty (1batch=32)')
 parser.add_argument('--loss_log_freq', '-lf', default=200000, type=int, help='record loss frequency per step')
 parser.add_argument('--loss_log_length', '-ll', default=1000, type=int, help='record loss step length')
@@ -60,7 +60,7 @@ parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=
 parser.add_argument('--seed', '-sd', type=int, default=0, help='random seed')
 parser.add_argument('--final_penalty_cut', '-fc', type=int, default=1, help='cut the penalty of end of episode or not')
 parser.add_argument('--data_seed', '-ds', type=int, default=0, help='randam seed for data separation')
-parser.add_argument('--f0', '-f0', type=bool, help='default q-learning')
+parser.add_argument('--f0', '-f0', type=bool, default= False, help='default q-learning')
 args = parser.parse_args()
 
 def run(args):
@@ -170,7 +170,7 @@ def run(args):
 			#update and save
 			if total_step > initial_exploration:
 				if f0 == True:
-					#print "----------------------- fixed Q update ------------------------------"
+					#print "----------------------- f0 fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
 				if total_step % q_update_freq == 0:

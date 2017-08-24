@@ -61,7 +61,7 @@ parser.add_argument('--penalty_function', '-pvf', type=str, default="action_valu
 parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=['huber', 'mean_squared'], help='penalty error function type')
 parser.add_argument('--seed', '-sd', type=int, default=0, help='random seed')
 parser.add_argument('--final_penalty_cut', '-fc', type=int, default=1, help='cut the penalty of end of episode or not')
-parser.add_argument('--f0', '-f0', type=bool, help='default q-learning')
+parser.add_argument('--f0', '-f0', type=bool, default= False, help='default q-learning')
 args = parser.parse_args()
 
 def run(args):
@@ -125,7 +125,9 @@ def run(args):
 	random.seed(seed)
 	np.random.seed(seed)
 	if gpu >= 0:
-		cuda.get_device(gpu).use()
+		cuda.get_device(gpu).use()	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory", "std_out"])
+	std_o = open("{}/{}/std_out/std_out.txt".format(directory_path, comment), "w")
+	sys.stdout = std_o
 		cuda.cupy.random.seed(seed)
 
 	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory"])
@@ -152,7 +154,9 @@ def run(args):
 		episode_start = time.time()
 		episode_reward = 0
 		episode_value = 0
-		s = env.reset()
+		env.state = np.array([0.0,0.0])
+		#s = env.reset()
+		s = np.array([0.0,0.0,0.0])
 
 		if total_step > finish_step:
 			#memory_save(game, directory_path, comment, total_step, agt, gpu)
@@ -182,10 +186,11 @@ def run(args):
 			#update and save
 			if total_step > initial_exploration:
 				if f0 == True:
-					print "----------------------- fixed Q update ------------------------------"
+					#print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
 				if total_step % q_update_freq == 0:
+					print "\n\n", total_step, "---total_step---", "\n\n"
 					agt.q_update(total_step)
 				if (total_step+1) % loss_log_freq == 0:
 					make_loss_log_file(directory_path, comment, total_step+1)
@@ -198,7 +203,7 @@ def run(args):
 					if loss_log_counter % loss_log_length == 0:
 						loss_log_flag = 0
 				if f0 == False and total_step % fixed_q_update_freq == 0:
-					print "----------------------- fixed Q update ------------------------------"
+					#print "----------------------- fixed Q update ------------------------------"
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
 					#if fixed_q_update_counter % loss_log_freq == 0:
