@@ -1,3 +1,5 @@
+__version__ = "0.0.1"
+
 import numpy as np
 import agent
 import environment
@@ -14,6 +16,7 @@ import loss_loger
 import pandas as pd
 from sklearn.datasets import fetch_mldata
 import random
+import datetime
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
@@ -117,6 +120,10 @@ def run(args):
 	std_o = open("{}/{}/std_out/std_out.txt".format(directory_path, comment), "w")
 	sys.stdout = std_o
 
+	print datetime.datetime.today().strftime("%Y/%m/%d %H:%M:%S")
+	print __version__
+	print args
+
 	if data_seed >= 0:
 		np.random.seed(data_seed)
 		training_pics, test_pics, all_pics = separate_data(pic_kind, training_size, test_size)
@@ -132,10 +139,10 @@ def run(args):
 
 	if test_with_all_data:
 		eval_pics = all_pics
-		print eval_pics.shape
+		#print eval_pics.shape
 	else:
 		eval_pics = test_pics
-		print eval_pics.shape
+		#print eval_pics.shape
 	env = environment.Environment(training_pics)
 	actions = ["up", "down", "right", "left"] 
 	num_of_actions = len(actions)
@@ -174,7 +181,7 @@ def run(args):
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
 				if total_step % q_update_freq == 0:
-					print "\n\n", total_step, "---total_step---", "\n\n"
+					#print "\n\n", total_step, "---total_step---", "\n\n"
 					agt.q_update(total_step)
 				if (total_step+1) % loss_log_freq == 0:
 					make_loss_log_file(directory_path, comment, total_step+1)

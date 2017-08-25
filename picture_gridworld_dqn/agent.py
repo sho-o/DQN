@@ -91,7 +91,7 @@ class Agent():
 		self.q.zerograds()
 		loss = self.compute_loss(s, a, r, new_s, done)
 		loss.backward(retain_grad=True)
-		print "grad", self.q.l5.W.grad[:,0]
+		#print "grad", self.q.l5.W.grad[:,0]
 		self.optimizer.update()
 
 	def fixed_q_updqte(self):
@@ -159,7 +159,7 @@ class Agent():
 
 		loss_sum = F.sum(F.huber_loss(q_action_value, target, delta=1.0))
 		loss = loss_sum / q_action_value.shape[0]
-		print "loss_a", loss.data
+		#print "loss_a", loss.data
 
 		if self.mode == "regularize" or loss_log == True:
 			if self.penalty_function == "value":
@@ -194,7 +194,7 @@ class Agent():
 				#return loss, penalty, np.average(y_data), np.std(y_data), np.average(t_data), np.std(t_data)
 
 			if penalty.data > self.threshold:
-				print "-------------on----------------"
+				#print "-------------on----------------"
 				loss = loss + self.penalty_weight * penalty
-		print "loss_b", loss.data
+		#print "loss_b", loss.data
 		return loss

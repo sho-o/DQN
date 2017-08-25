@@ -1,3 +1,5 @@
+__version__ = "0.0.1"
+
 import numpy as np
 import agent
 import preprocess
@@ -16,6 +18,7 @@ import evaluation
 import pandas as pd
 import random
 import cupy
+import datetime
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', '-G', default='atari', type=str, help='game type (doom or atari)')
@@ -127,6 +130,11 @@ def run(args):
 	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory", "std_out"])
 	std_o = open("{}/{}/std_out/std_out.txt".format(directory_path, comment), "w")
 	sys.stdout = std_o
+
+	print datetime.datetime.today().strftime("%Y/%m/%d %H:%M:%S")
+	print __version__
+	print args
+
 	pre = preprocess.Preprocess()
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type, final_penalty_cut)
 	env = gym.make(name)
