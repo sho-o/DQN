@@ -17,7 +17,6 @@ import loss_loger
 import evaluation
 import pandas as pd
 import random
-import cupy
 import datetime
 
 parser = argparse.ArgumentParser()
@@ -125,7 +124,7 @@ def run(args):
 	np.random.seed(seed)
 	if gpu >= 0:
 		cuda.get_device(gpu).use()
-		cupy.random.seed(seed)
+		cuda.cupy.random.seed(seed)
 
 	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory", "std_out"])
 	std_o = open("{}/{}/std_out/std_out.txt".format(directory_path, comment), "w")
