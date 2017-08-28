@@ -55,7 +55,11 @@ class Agent():
 			s = np.asarray(s.reshape(1, self.input_slides, self.size, self.size), dtype=np.float32)
 		if self.gpu >= 0:
 			s = cuda.to_gpu(s)
-		s = Variable(s)
+
+		if chainer.__version__ >= "2.0.0":
+			s = Variable(s)
+		else:
+			s = Variable(s, volatile='auto')
 
 		if self.exp_policy == "epsilon_greedy":
 			with chainer.no_backprop_mode():
@@ -126,8 +130,12 @@ class Agent():
 		if self.gpu >= 0:
 			s = cuda.to_gpu(s)
 			new_s = cuda.to_gpu(new_s)
-		s = Variable(s)
-		new_s = Variable(new_s)
+		if chainer.__version__ >= "2.0.0":
+			s = Variable(s)
+			new_s = Variable(new_s)
+		else:
+			s = Variable(s, volatile='auto')
+			new_s = Variable(new_s, volatile='auto')
 		q_value = self.q(s)
 
 		with chainer.no_backprop_mode():
@@ -143,7 +151,12 @@ class Agent():
 			a = cuda.to_gpu(a)
 			r = cuda.to_gpu(r)
 			done = cuda.to_gpu(done)
-		a = Variable(a)
+
+		if chainer.__version__ >= "2.0.0":
+			a = Variable(a)
+		else:
+			a = Variable(a, volatile='auto')
+
 		argmax_a = F.argmax(tg_q_value, axis=1)
 
 		#print a
