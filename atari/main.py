@@ -1,4 +1,4 @@
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 import numpy as np
 import agent
@@ -126,7 +126,7 @@ def run(args):
 		cuda.get_device(gpu).use()
 		cuda.cupy.random.seed(seed)
 
-	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory", "std_out"])
+	make_directries(directory_path, comment, ["network", "log", "evaluation", "loss", "replay_memory", "std_out", "gradient"])
 	std_o = open("{}/{}/std_out/std_out.txt".format(directory_path, comment), "w")
 	sys.stdout = std_o
 
@@ -135,7 +135,7 @@ def run(args):
 	print args
 
 	pre = preprocess.Preprocess()
-	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type, final_penalty_cut)
+	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type, final_penalty_cut, directory_path, comment)
 	env = gym.make(name)
 	#multiprocessing_lock = multiprocessing.Lock()
 	#env.configure(lock=multiprocessing_lock)

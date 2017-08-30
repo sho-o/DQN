@@ -6,7 +6,7 @@ import chainer.functions as F
 import network
 
 class Agent():
-	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type, final_penalty_cut):
+	def __init__(self, exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type, final_penalty_cut, directory_path, comment):
 		self.exp_policy = exp_policy
 		self.net_type = net_type
 		self.gpu = gpu
@@ -47,6 +47,8 @@ class Agent():
 		self.penalty_function = penalty_function
 		self.penalty_type = penalty_type
 		self.final_penalty_cut = final_penalty_cut
+		self.directory_path = directory_path
+		self.comment = comment
 
 	def policy(self, s, eva=False):
 		if self.net_type == "full":
@@ -94,6 +96,8 @@ class Agent():
 		#print a
 		self.q.zerograds()
 		loss = self.compute_loss(s, a, r, new_s, done)
+		with open('{}/{}/gradient/gradient.txt'.format(self.directory_path, self.comment),'a') as f:
+			f.write("{},{},{},{},{},{}\n".format(self.q.l5.W.grad[0,1], self.q.l5.W.grad[2,202], self.q.l5.W.grad[3,489], self.q.l4.W.grad[125,2865], self.q.l4.W.grad[398,1629], self.q.l4.W.grad[445,24]))
 		loss.backward(retain_grad=True)
 		#print "grad", self.q.l5.W.grad[:,0]
 		self.optimizer.update()
