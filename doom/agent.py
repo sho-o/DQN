@@ -96,9 +96,9 @@ class Agent():
 		#print a
 		self.q.zerograds()
 		loss = self.compute_loss(s, a, r, new_s, done)
+		loss.backward(retain_grad=True)
 		with open('{}/{}/gradient/gradient.txt'.format(self.directory_path, self.comment),'a') as f:
 			f.write("{},{},{},{},{},{}\n".format(self.q.l5.W.grad[0,1], self.q.l5.W.grad[2,202], self.q.l5.W.grad[3,489], self.q.l4.W.grad[125,2865], self.q.l4.W.grad[398,1629], self.q.l4.W.grad[445,24]))
-		loss.backward(retain_grad=True)
 		#print "grad", self.q.l5.W.grad[:,0]
 		self.optimizer.update()
 
