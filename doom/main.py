@@ -4,6 +4,7 @@ import numpy as np
 import agent
 import preprocess
 from chainer import cuda, serializers
+import chainer
 import argparse
 import time
 import os
@@ -133,6 +134,7 @@ def run(args):
 	print datetime.datetime.today().strftime("%Y/%m/%d %H:%M:%S")
 	print __version__
 	print args
+	print "chainer", chainer.__version__
 
 	pre = preprocess.Preprocess()
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type, final_penalty_cut, directory_path, comment)

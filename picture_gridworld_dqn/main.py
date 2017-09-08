@@ -4,6 +4,7 @@ import numpy as np
 import agent
 import environment
 from chainer import cuda, serializers
+import chainer
 import argparse
 import time
 import os
@@ -46,7 +47,7 @@ parser.add_argument('--rms_lr', '-lr', type=float, default=0.00025, help='RMSPro
 parser.add_argument('--optimizer_type', '-o', type=str, default="rmsprop", choices=['rmsprop', 'sgd', 'adam'], help='type of optimizer')
 parser.add_argument('--start_point', '-sp', type=int, default=1, help='start point')
 parser.add_argument('--mode', '-m', type=str, default="default", choices=['default', 'regularize', 'mix'], help='default or regularize or mix')
-parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regularization threshold')
+parser.add_argument('--threshold', '-t', type=float , default=0.00001, help='regularization threshold')
 parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
 parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
 parser.add_argument('--training_size', '-ts', type=int, default=2000, help='number of kinds of training pictures')
@@ -123,6 +124,7 @@ def run(args):
 	print datetime.datetime.today().strftime("%Y/%m/%d %H:%M:%S")
 	print __version__
 	print args
+	print "chainer", chainer.__version__
 
 	if data_seed >= 0:
 		np.random.seed(data_seed)
