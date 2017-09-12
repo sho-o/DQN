@@ -258,16 +258,20 @@ def make_test_graph(directory_path, comment):
 	plt.plot(total_step, reward_mean, color="r")
 	#plt.fill_between(total_step, reward_mean+reward_std, reward_mean-reward_std, facecolor='red', alpha=0.3)
 	plt.savefig("{}/{}/evaluation/reward.png".format(directory_path, comment))
+	plt.close()
 	plt.figure()
 	plt.plot(total_step, step_mean, color="b")
 	#plt.fill_between(total_step, step_mean+step_std, step_mean-step_std, facecolor='blue', alpha=0.3)
 	plt.savefig("{}/{}/evaluation/step.png".format(directory_path, comment))
+	plt.close()
 	plt.figure()
 	plt.plot(total_step, success_times, color="g")
 	plt.savefig("{}/{}/evaluation/success_times.png".format(directory_path, comment))
+	plt.close()
 	plt.figure()
 	plt.plot(total_step, success_step_mean, color="c")
 	plt.savefig("{}/{}/evaluation/success_step_mean.png".format(directory_path, comment))
+	plt.close()
 
 def make_training_graph(directory_path, comment, rolling_mean_width):
 	df = pd.read_csv("{}/{}/log/log.csv".format(directory_path, comment))
@@ -279,9 +283,11 @@ def make_training_graph(directory_path, comment, rolling_mean_width):
 	plt.figure()
 	plt.plot(total_step, reward, color="red")
 	plt.savefig("{}/{}/log/training_reward.png".format(directory_path, comment))
+	plt.close()
 	plt.figure()
 	plt.plot(total_step, episode_step, color="blue")
 	plt.savefig("{}/{}/log/training_step.png".format(directory_path, comment))
+	plt.close()
 
 def make_loss_graph(directory_path, comment, fixed_q_update_counter):
 	df = pd.read_csv("{}/{}/loss/{}_loss.csv".format(directory_path, comment, fixed_q_update_counter))
@@ -294,10 +300,12 @@ def make_loss_graph(directory_path, comment, fixed_q_update_counter):
 	plt.plot(total_step, loss_mean, color="red")
 	plt.fill_between(total_step, loss_mean+loss_std, loss_mean-loss_std, facecolor='red', alpha=0.3)
 	plt.savefig("{}/{}/loss/{}_loss.png".format(directory_path, comment, fixed_q_update_counter))
+	plt.close()
 	plt.figure()
 	plt.plot(total_step, penalty_mean, color="blue")
 	plt.fill_between(total_step, penalty_mean+penalty_std, penalty_mean-penalty_std, facecolor='blue', alpha=0.3)
 	plt.savefig("{}/{}/loss/{}_penalty.png".format(directory_path, comment, fixed_q_update_counter))
+	plt.close()
 
 def separate_data(pic_kind, training_size, test_size):
 	if pic_kind == "mnist":

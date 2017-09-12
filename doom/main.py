@@ -272,6 +272,7 @@ def make_test_graph(directory_path, comment):
 	plt.plot(total_step, reward_mean, color="red")
 	plt.fill_between(total_step, reward_mean+reward_std, reward_mean-reward_std, facecolor='red', alpha=0.3)
 	plt.savefig("{}/{}/evaluation/reward.png".format(directory_path, comment))
+	plt.close()
 	#plt.figure()
 	#plt.plot(total_step, step_mean, color="blue")
 	#plt.fill_between(total_step, step_mean+step_std, step_mean-step_std, facecolor='blue', alpha=0.3)
@@ -287,6 +288,7 @@ def make_training_graph(directory_path, comment, rolling_mean_width):
 	plt.figure()
 	plt.plot(total_step, reward, color="red")
 	plt.savefig("{}/{}/log/training_reward.png".format(directory_path, comment))
+	plt.close()
 	#plt.figure()
 	#plt.plot(total_step, episode_step, color="blue")
 	#plt.savefig("result/{}/log/training_step.png".format(comment))
@@ -302,10 +304,12 @@ def make_loss_graph(directory_path, comment, fixed_q_update_counter):
 	plt.plot(total_step, loss_mean, color="red")
 	plt.fill_between(total_step, loss_mean+loss_std, loss_mean-loss_std, facecolor='red', alpha=0.3)
 	plt.savefig("{}/{}/loss/{}_loss.png".format(directory_path, comment, fixed_q_update_counter))
+	plt.close()
 	plt.figure()
 	plt.plot(total_step, penalty_mean, color="blue")
 	plt.fill_between(total_step, penalty_mean+penalty_std, penalty_mean-penalty_std, facecolor='blue', alpha=0.3)
 	plt.savefig("{}/{}/loss/{}_penalty.png".format(directory_path, comment, fixed_q_update_counter))
+	plt.close()
 
 def print_result(episode, steps, episode_reward, episode_time, epsilon, total_step, run_time):
 	print("-------------------Episode {} finished after {} steps-------------------".format(episode+1, steps+1))
