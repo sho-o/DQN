@@ -47,6 +47,8 @@ class Agent():
 		self.penalty_function = penalty_function
 		self.penalty_type = penalty_type
 		self.final_penalty_cut = final_penalty_cut
+		#self.reg_counter = 0
+		self.reg_list = []
 
 	def policy(self, s, eva=False):
 		if self.net_type == "full":
@@ -93,7 +95,7 @@ class Agent():
 		s, a, r, new_s, done = self.make_minibatch(total_step)
 		#print a
 		self.q.zerograds()
-		loss = self.compute_loss(s, a, r, new_s, done)
+		loss = self.compute_loss(s, a, r, new_s, done, total_step=total_step)
 		loss.backward(retain_grad=True)
 		#print "grad", self.q.l5.W.grad[:,0]
 		self.optimizer.update()
@@ -121,7 +123,7 @@ class Agent():
 			done_batch[i] = self.replay_memory["done"][index[i]]
 		return s_batch, a_batch, r_batch, new_s_batch, done_batch
 
-	def compute_loss(self, s, a, r, new_s, done, loss_log=False):
+	def compute_loss(self, s, a, r, new_s, done, loss_log=False, total_step=None):
 		if self.net_type == "full":
 			s = s.reshape(self.batch_size, self.input_slides*self.size*self.size)
 			new_s = new_s.reshape(self.batch_size, self.input_slides*self.size*self.size)
@@ -208,6 +210,10 @@ class Agent():
 
 			if penalty.data > self.threshold:
 				#print "-------------on----------------"
+				#self.reg_counter += 1
+				#print self.reg_counter
+				if loss_log == False:
+					self.reg_list.append(total_step)
 				loss = loss + self.penalty_weight * penalty
 		#print "loss_b", loss.data
 		return loss

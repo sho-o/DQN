@@ -1,4 +1,4 @@
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 import numpy as np
 import agent
@@ -18,6 +18,7 @@ import pandas as pd
 from sklearn.datasets import fetch_mldata
 import random
 import datetime
+import pickle
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
@@ -163,6 +164,8 @@ def run(args):
 		s = s_init
 		pic_s = env.s_to_pic(s)
 		if total_step > finish_step:
+			with open("{}/{}/log/reg_list.pickle".format(directory_path, comment), 'a') as f:
+				pickle.dump(agt.reg_list, f)
 			break
 
 		for steps in range(max_step):
