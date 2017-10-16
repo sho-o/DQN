@@ -19,6 +19,7 @@ from sklearn.datasets import fetch_mldata
 import random
 import datetime
 import pickle
+import q_evaluation
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--comment', '-c', default='', type=str, help='comment to distinguish output')
@@ -66,6 +67,8 @@ parser.add_argument('--seed', '-sd', type=int, default=0, help='random seed')
 parser.add_argument('--final_penalty_cut', '-fc', type=int, default=1, help='cut the penalty of end of episode or not')
 parser.add_argument('--data_seed', '-ds', type=int, default=0, help='randam seed for data separation')
 parser.add_argument('--f0', '-f0', type=bool, default= False, help='default q-learning')
+parser.add_argument('--q_eval_flag', '-qe', type=bool, default= False, help='q_evalation_flag')
+parser.add_argument('--q_eval_freq', '-qef', type=int, default= 100, help='q_evalation_frequency')
 args = parser.parse_args()
 
 def run(args):
@@ -114,6 +117,8 @@ def run(args):
 	final_penalty_cut = args.final_penalty_cut
 	data_seed = args.data_seed
 	f0 = args.f0
+	q_eval_flag = args.q_eval_flag
+	q_eval_freq = args.q_eval_freq
 	s_init = [(start_point-1)%3, (start_point-1)/3]
 	epsilon_decrease_wide = 0.9/(epsilon_decrease_end - initial_exploration)
 
@@ -151,6 +156,7 @@ def run(args):
 	num_of_actions = len(actions)
 	agt = agent.Agent(exp_policy, net_type, gpu, pic_size, num_of_actions, memory_size, input_slides, batch_size, discount, rms_eps, rms_lr, optimizer_type, mode, threshold, penalty_weight, mix_rate, penalty_function, penalty_type, final_penalty_cut)
 	eva = evaluation.Evaluation(directory_path, comment, eval_pics, s_init, actions, max_step, reward_clip, test_iter)
+	q_eva = q_evaluation.Q_Evaluation(directory_path, comment, training_pics, actions, q_eval_freq)
 	loss_log = loss_loger.Loss_Log(directory_path, comment, loss_log_iter, gpu)
 	total_step = 0
 	fixed_q_update_counter = 0
@@ -211,6 +217,8 @@ def run(args):
 				if total_step % eval_freq == 0:
 					print "----------------------- evaluate the model ------------------------------"
 					eva(agt, episode, total_step)
+					if q_eval_flag:
+						q_eva(agt, total_step)
 				if total_step % graph_freq == 0:
 					print "----------------------- make graph ------------------------------"
 					make_test_graph(directory_path, comment)
