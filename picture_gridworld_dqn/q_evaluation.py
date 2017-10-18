@@ -25,7 +25,7 @@ class Q_Evaluation():
 			self.env.make_episode_pics()
 			data = np.array([])
 			for s in range(9):
-				pic_s = self.env.episode_pics[s]
+				pic_s = self.env.episode_pics[s+1]
 				q_values = self.Q(pic_s, agt)
 				q_values = q_values.reshape(len(self.actions))
 				data = np.append(data, q_values)
@@ -57,24 +57,31 @@ class Q_Evaluation():
 				q = cuda.to_cpu(q)
 		return q
 
-	def make_heatmap(self, value, total_step, kind):
+	def make_heatmap(self, value, total_step, kind, test=False):
 		valuemap = np.zeros((9,9))
 		for s in range(9):
 			if s == 4:
 				continue
 			center = self.calculate_center(s)
-			valuemap[center[0], center[1]-1] = value[4*s] #up
-			valuemap[center[0], center[1]+1] = value[4*s + 1] #down
-			valuemap[center[0]+1, center[1]] = value[4*s + 2] #right
-			valuemap[center[0]-1, center[1]] = value[4*s + 3] #left
+			valuemap[center[0]-1, center[1]] = value[4*s] #up
+			valuemap[center[0]+1, center[1]] = value[4*s + 1] #down
+			valuemap[center[0], center[1]+1] = value[4*s + 2] #right
+			valuemap[center[0], center[1]-1] = value[4*s + 3] #left
 		sns.heatmap(valuemap, annot=True, cmap='Blues')
-		plt.savefig("{}/{}/evaluation/q_evaluation_{}_{}.png".format(self.directory_path, self.comment, total_step, kind))
+		if test:
+			plt.savefig("q_evaluation_{}_{}.png".format(total_step, kind))
+		else:
+			plt.savefig("{}/{}/evaluation/q_evaluation_{}_{}.png".format(self.directory_path, self.comment, total_step, kind))
 		plt.close()
 
 	def calculate_center(self, s):
 		center0 = (s%3)*3+1
 		center1 = (s/3)*3+1
 		return [center0, center1]
+
+if __name__ == '__main__':
+	q_eva = Q_Evaluation(".", "", None, ["up","down","right","left"], 1)
+	q_eva.make_heatmap(np.arange(36), 0, "test", True)
 
 
 
