@@ -32,7 +32,7 @@ parser.add_argument('--q_update_freq', '-q', default=4, type=int, help='q update
 parser.add_argument('--fixed_q_update_freq', '-f', default=10**2, type=int, help='fixed q update freaquency')
 parser.add_argument('--save_freq', '-sf', default=10**5, type=int, help='save frequency')
 parser.add_argument('--eval_freq', '-ef', default=10**4, type=int, help='evaluatuin frequency')
-parser.add_argument('--print_freq', '-pf', default=1, type=int, help='print result frequency')
+parser.add_argument('--print_freq', '-pf', default=1000000, type=int, help='print result frequency')
 parser.add_argument('--graph_freq', '-gf', default=10**5, type=int, help='make graph frequency')
 parser.add_argument('--memory_save_freq', '-mf', default=5*10**6, type=int, help='memory save frequency')
 parser.add_argument('--initial_exploration', '-i', default=10**3, type=int, help='number of initial exploration')
