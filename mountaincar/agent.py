@@ -140,7 +140,7 @@ class Agent():
 				tg_q_value = self.q(new_s)
 			elif self.mode == "target_mix":
 				tg_q_value = (1.0-self.mix_rate) * self.q(new_s) + self.mix_rate * self.fixed_q(new_s)
-			elif self.mode == "default":
+			elif self.mode == "default" or self.mode == "q_learning":
 				tg_q_value = self.fixed_q(new_s)
 		print "tg_q_value[0]", tg_q_value[0].data
 

@@ -26,7 +26,7 @@ parser.add_argument('--gpu', '-g', default= -1, type=int, help='GPU ID (negative
 parser.add_argument('--exp_policy', '-p', default="epsilon_greedy", type=str, help='explorlation policy')
 parser.add_argument('--epsilon_decrease_end', '-ee', default=10**4, type=int, help='the step number of the end of epsilon decrease')
 parser.add_argument('--max_episode', '-e', default=10**7, type=int, help='number of episode to learn')
-parser.add_argument('--max_step', '-s', default=100000, type=int, help='max steps per episode')
+parser.add_argument('--max_step', '-s', default=10*6, type=int, help='max steps per episode')
 parser.add_argument('--finish_step', '-fs', default=5*10**4, type=int, help='end of the learning')
 parser.add_argument('--q_update_freq', '-q', default=4, type=int, help='q update freaquency')
 parser.add_argument('--fixed_q_update_freq', '-f', default=10**2, type=int, help='fixed q update freaquency')
@@ -45,7 +45,7 @@ parser.add_argument('--discount', '-d', type=float, default=0.99, help='discount
 parser.add_argument('--rms_eps', '-re', type=float, default=0.01, help='RMSProp_epsilon')
 parser.add_argument('--rms_lr', '-lr', type=float, default=0.00025, help='RMSProp_learning_rate')
 parser.add_argument('--optimizer_type', '-o', type=str, default="rmsprop", help='type of optimizer')
-parser.add_argument('--mode', '-m', type=str, default="default", help='default or regularize or mix')
+parser.add_argument('--mode', '-m', type=str, default="default", help='default or regularize or mix or q_learning')
 parser.add_argument('--threshold', '-t', type=float , default=0.001, help='regularization threshold')
 parser.add_argument('--penalty_weight', '-pw', type=float, default=1.0, help='regularization penalty weight')
 parser.add_argument('--mix_rate', '-mr', type=float, default=0, help='target_mix _rate')
@@ -55,7 +55,7 @@ parser.add_argument('--loss_log_length', '-ll', default=1000, type=int, help='re
 parser.add_argument('--rolling_mean_width', '-r', default=1000, type=int, help='width of rolling mean')
 parser.add_argument('--skip_size', '-ss', type=int, default=4, help='skip size')
 parser.add_argument('--num_of_actions', '-na', type=int, default=7, help='number of actions')
-parser.add_argument('--eval_iter', '-ei', type=int, default=5, help='iteration of evaluation')
+parser.add_argument('--eval_iter', '-ei', type=int, default=30, help='iteration of evaluation')
 parser.add_argument('--max_initial_noop', '-mn', type=int, default=30, help='maximum times of initial noop')
 parser.add_argument('--penalty_function', '-pvf', type=str, default="action_value", choices=['value', 'action_value', 'max_action_value'], help='value function type used to compute penatlty')
 parser.add_argument('--penalty_type', '-pt', type=str, default="huber", choices=['huber', 'mean_squared'], help='penalty error function type')
@@ -106,6 +106,8 @@ def run(args):
 	rms_lr = args.rms_lr
 	optimizer_type = args.optimizer_type
 	mode = args.mode
+	if mode == "q_learning":
+		fixed_q_update_freq = 4
 	threshold = args.threshold
 	mix_rate = args.mix_rate
 	loss_log_iter = args.loss_log_iter
