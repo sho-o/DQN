@@ -10,11 +10,12 @@ import matplotlib as mpl
 mpl.use('Agg')
 from matplotlib import pylab as plt
 import gym
-import multiprocessing
+#import multiprocessing
 import loss_loger
 import evaluation
 import pandas as pd
 import random
+import pickle
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--game', '-G', default='mountaincar', choices=['atari', 'doom', 'pendulum','mountaincar'], type=str, help='game type (doom or atari)')
@@ -130,7 +131,7 @@ def run(args):
 	np.random.seed(seed)
 
 	env = gym.make(name)
-	if game == "pendulum":
+	if game == "pendulum" or "mountaincar":
 		env = env.unwrapped
 	#multiprocessing_lock = multiprocessing.Lock()
 	#env.configure(lock=multiprocessing_lock)
@@ -156,6 +157,7 @@ def run(args):
 	total_step = 0
 	fixed_q_update_counter = 0
 	loss_log_flag = 0
+	abs_grad_list = [[],[]]
 	run_start = time.time()
 
 	for episode in range(max_episode):
@@ -163,11 +165,16 @@ def run(args):
 		episode_reward = 0
 		episode_value = 0
 		#env.state = np.array([0.0,0.0])
-		s = env.reset()
+		#s = env.reset()
+		env.state = np.array([-0.5,0])
+		s =  np.array([-0.5,0])
 		#s = np.array([0.0,0.0,0.0])
 
 		if total_step > finish_step:
 			#memory_save(game, directory_path, comment, total_step, agt, gpu)
+			with open("{}/{}/log/abs_grad_list.pickle".format(directory_path, comment), 'a') as f:
+				pickle.dump(abs_grad_list, f)
+				#print abs_grad_list
 			break
 
 		for steps in range(max_step):
@@ -183,6 +190,7 @@ def run(args):
 				obs, r, done, info = env.step(action)
 			if game == "atari" or game == "mountaincar":
 				obs, r, done, info = env.step(a)
+				#print obs, a
 			if game == "pendulum":
 				new_s, r, done, info = env.step([pendulum_actions[a]])
 			#obs_processed = pre.one(obs)
@@ -207,8 +215,10 @@ def run(args):
 					agt.fixed_q_updqte()
 					fixed_q_update_counter += 1
 				if total_step % q_update_freq == 0:
-					print "\n\n", total_step, "---total_step---", "\n\n"
+					#print "\n\n", total_step, "---total_step---", "\n\n"
 					agt.q_update(total_step)
+					abs_grad_list[0].append(total_step)
+					abs_grad_list[1].append(float(np.average(np.absolute(agt.q.l3.W.grad))))
 				if (total_step+1) % loss_log_freq == 0:
 					make_loss_log_file(directory_path, comment, total_step+1)
 					loss_log_counter = 0
@@ -245,8 +255,8 @@ def run(args):
 
 			#log, print_result
 			if done or (steps == max_step-1):
-				if done:
-					print "----------done---------------"
+				#if done:
+					#print "----------done---------------"
 				run_time = time.time() - run_start
 				episode_time = time.time() - episode_start
 				episode_average_value = episode_value/steps

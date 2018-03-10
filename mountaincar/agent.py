@@ -132,7 +132,7 @@ class Agent():
 		s = Variable(s)
 		new_s = Variable(new_s)
 		q_value = self.q(s)
-		print "s[0]", s.data[0]
+		#print "s[0]", s.data[0]
 		#print "new_s[0]", new_s.data[0]  
 
 		with chainer.no_backprop_mode():
@@ -142,7 +142,7 @@ class Agent():
 				tg_q_value = (1.0-self.mix_rate) * self.q(new_s) + self.mix_rate * self.fixed_q(new_s)
 			elif self.mode == "default" or self.mode == "q_learning":
 				tg_q_value = self.fixed_q(new_s)
-		print "tg_q_value[0]", tg_q_value[0].data
+		#print "tg_q_value[0]", tg_q_value[0].data
 
 		if self.gpu >= 0:
 			a = cuda.to_gpu(a)
@@ -154,18 +154,18 @@ class Agent():
 		#print "r[0]", r[0]
 
 		q_action_value = F.select_item(q_value, a)
-		print "q_action_value[0]", q_action_value[0].data
+		#print "q_action_value[0]", q_action_value[0].data
 		target = r + self.discount * (1.0 - done) * F.select_item(tg_q_value, argmax_a)
-		print "target[0]", target[0].data
+		#print "target[0]", target[0].data
 		#target is float32
 
 		q_action_value = F.reshape(q_action_value, (-1, 1))
 		target = F.reshape(target, (-1, 1))
 
 		loss_sum = F.sum(F.huber_loss(q_action_value, target, delta=1.0))
-		print "loss_sum", loss_sum.data
+		#print "loss_sum", loss_sum.data
 		loss = loss_sum / q_action_value.shape[0]
-		print "loss_a", loss.data
+		#print "loss_a", loss.data
 
 		if self.mode == "regularize" or loss_log == True:
 			if self.penalty_function == "value":
@@ -200,7 +200,7 @@ class Agent():
 				#return loss, penalty, np.average(y_data), np.std(y_data), np.average(t_data), np.std(t_data)
 
 			if penalty.data > self.threshold:
-				print "-------------on----------------"
+				#print "-------------on----------------"
 				loss = loss + self.penalty_weight * penalty
-		print "loss_b", loss.data
+		#print "loss_b", loss.data
 		return loss
