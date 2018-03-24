@@ -10,7 +10,7 @@ GPU
 
 `python main.py -g gpu_number` 
 
-## Example 
+Example 
 
 `python main.py -c "ConstrainedDQN_pw2_re1_f100_sd0" -dp result -m regularize -pw 2 -re 1.0 -sd 0` 
 
@@ -32,7 +32,7 @@ GPU
 
 `python make_multi_graph_2.py` 
 
-## Example 
+Example 
 
 `python make_multi_graph_2.py -m test -dr result -k DQN_re0.01 -o DQN_re0.01 -a 1 -g 1` 
 
