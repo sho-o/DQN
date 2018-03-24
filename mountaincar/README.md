@@ -36,7 +36,7 @@ GPU
 
 `python make_multi_graph_2.py -m test -dr result -k DQN_re0.01 -o DQN_re0.01 -a 1 -g 1` 
 
-テストモード(evaluationの結果を)resultディレクトリの"DQN_re0.01"という　キーワードを含む全てのフォルダについてグラフを描し、"DQN_re0.01.png"というファイル名で出力。また、各エピソードごとの勾配の絶対値の平均値の図も出力。
+テストモード(evaluationの結果を)resultディレクトリの"DQN_re0.01"というキーワードを含む全てのフォルダについてグラフを描し、"DQN_re0.01.png"というファイル名で出力。また、各エピソードごとの勾配の絶対値の平均値の図も出力。
 
 
 
