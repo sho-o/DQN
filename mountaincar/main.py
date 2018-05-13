@@ -158,10 +158,6 @@ def run(args):
 	fixed_q_update_counter = 0
 	loss_log_flag = 0
 	abs_grad_list = [[],[],[],[],[]]
-	abs_grad_list_tmp = [[],[],[],[],[]]
-	grad_save_freq = 1000
-	with open("{}/{}/log/abs_grad_list.pickle".format(directory_path, comment), 'w') as f:
-		pickle.dump(abs_grad_list, f)
 	run_start = time.time()
 
 	for episode in range(max_episode):
@@ -176,8 +172,8 @@ def run(args):
 
 		if total_step > finish_step:
 			#memory_save(game, directory_path, comment, total_step, agt, gpu)
-			#with open("{}/{}/log/abs_grad_list.pickle".format(directory_path, comment), 'a') as f:
-				#pickle.dump(abs_grad_list, f)
+			with open("{}/{}/log/abs_grad_list.pickle".format(directory_path, comment), 'a') as f:
+				pickle.dump(abs_grad_list, f)
 				#print abs_grad_list
 			break
 
@@ -221,19 +217,11 @@ def run(args):
 				if total_step % q_update_freq == 0:
 					#print "\n\n", total_step, "---total_step---", "\n\n"
 					agt.q_update(total_step)
-					abs_grad_list_tmp[0].append(total_step)
-					abs_grad_list_tmp[1].append(float(np.average(np.absolute(agt.q.l3.W.grad))))
-					abs_grad_list_tmp[2].append(float(agt.q.l3.W.grad[0][30]))
-					abs_grad_list_tmp[3].append(float(agt.q.l3.W.grad[1][50]))
-					abs_grad_list_tmp[4].append(float(agt.q.l3.W.grad[2][80]))
-					if total_step % grad_save_freq == 0:
-						with open("{}/{}/log/abs_grad_list.pickle".format(directory_path, comment), 'r') as f:
-							abs_grad_list = pickle.load(f)
-							for i in range(5):
-								abs_grad_list[i].extend(abs_grad_list_tmp[i])
-						with open("{}/{}/log/abs_grad_list.pickle".format(directory_path, comment), 'w') as f:
-							pickle.dump(abs_grad_list, f)
-
+					abs_grad_list[0].append(total_step)
+					abs_grad_list[1].append(float(np.average(np.absolute(agt.q.l3.W.grad))))
+					abs_grad_list[2].append(float(agt.q.l3.W.grad[0][30]))
+					abs_grad_list[3].append(float(agt.q.l3.W.grad[1][50]))
+					abs_grad_list[4].append(float(agt.q.l3.W.grad[2][80]))
 				if (total_step+1) % loss_log_freq == 0:
 					make_loss_log_file(directory_path, comment, total_step+1)
 					loss_log_counter = 0
