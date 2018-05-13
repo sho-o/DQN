@@ -157,7 +157,8 @@ def run(args):
 	total_step = 0
 	fixed_q_update_counter = 0
 	loss_log_flag = 0
-	abs_grad_list = [[],[],[],[],[]]
+	#abs_grad_list = [[],[],[],[],[]]
+	abs_grad_list = [[],[]]
 	run_start = time.time()
 
 	for episode in range(max_episode):
@@ -219,9 +220,9 @@ def run(args):
 					agt.q_update(total_step)
 					abs_grad_list[0].append(total_step)
 					abs_grad_list[1].append(float(np.average(np.absolute(agt.q.l3.W.grad))))
-					abs_grad_list[2].append(float(agt.q.l3.W.grad[0][30]))
-					abs_grad_list[3].append(float(agt.q.l3.W.grad[1][50]))
-					abs_grad_list[4].append(float(agt.q.l3.W.grad[2][80]))
+					#abs_grad_list[2].append(float(agt.q.l3.W.grad[0][30]))
+					#abs_grad_list[3].append(float(agt.q.l3.W.grad[1][50]))
+					#abs_grad_list[4].append(float(agt.q.l3.W.grad[2][80]))
 				if (total_step+1) % loss_log_freq == 0:
 					make_loss_log_file(directory_path, comment, total_step+1)
 					loss_log_counter = 0
